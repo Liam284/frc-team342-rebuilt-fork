@@ -192,6 +192,11 @@ public class SwereDrive extends SubsystemBase {
     return chassisSpeeds;
   }
 
+  /**Toggles whether or not the robot is field oriented */
+  public void toggleFieldOriented(){
+    fieldOriented = !fieldOriented;
+  }
+
   /**Sets each modules chassis speeds to a given chassis speed */
   public void drive(ChassisSpeeds chassisSpeeds){
     if(fieldOriented)
@@ -274,7 +279,7 @@ public class SwereDrive extends SubsystemBase {
     builder.addDoubleProperty(backLeftModule.getLabel() + "Drive Velocity", () -> backLeftModule.getVelocity(), null);
   }
 
-  //Puts swere drive data
+  /**Puts swere drive data*/
   public void initSendable(SendableBuilder builder){
     putFrontLeftData(builder);
     putFrontRightData(builder);
