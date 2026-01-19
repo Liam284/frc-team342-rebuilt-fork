@@ -8,10 +8,8 @@ import static edu.wpi.first.units.Units.Inches;
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.util.Units;
+
+import java.util.List;
 
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
@@ -32,9 +30,10 @@ public final class Constants {
     public static final String LEFT_ROBOT_CAMERA = "";
     public static final String RIGHT_ROBOT_CAMERA = "";
 
-    public static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(null);
+    public static final AprilTagFieldLayout FIELD_LAYOUT = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
     public static final double AMBIGUITY_CUTOFF = 0.1;
     public static final double TAG_CUTOFF_DISTANCE = 0.0;
   }
+
 }
