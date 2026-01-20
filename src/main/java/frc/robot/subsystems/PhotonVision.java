@@ -8,19 +8,15 @@ import static frc.robot.Constants.VisionConstants.*;
 import frc.robot.AprilTagIDs.*;
 
 import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.DriverStation;
-import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.targeting.PhotonPipelineResult;
 import org.photonvision.targeting.PhotonTrackedTarget;
 import java.util.List;
-import java.util.Optional;
 import java.util.ArrayList;
 
 public class PhotonVision extends SubsystemBase {
@@ -30,7 +26,10 @@ public class PhotonVision extends SubsystemBase {
   private PhotonCamera leftRobotCamera;
   private PhotonCamera rightRobotCamera;
 
-  private PhotonPoseEstimator poseEstimator;
+  private PhotonPoseEstimator leftTurretCameraPoseEstimator;
+  private PhotonPoseEstimator rightTurretCameraPoseEstimator;
+  private PhotonPoseEstimator leftRobotCameraPoseEstimator;
+  private PhotonPoseEstimator rightRobotCameraPoseEstimator;
   private Pose3d robotPose;
 
   private List<PhotonPipelineResult> allCameraResults;
@@ -47,24 +46,18 @@ public class PhotonVision extends SubsystemBase {
 
     allCameraResults = getAllCameraPipelines();
 
-    poseEstimator = new PhotonPoseEstimator(
-      FIELD_LAYOUT,
-      new Transform3d(
-        new Translation3d(
-          0,
-          0,
-          0
-        ),
-        new Rotation3d(
-          0,
-          0, 
-          0
-        )
-      )
-    );
+    leftTurretCameraPoseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, LEFT_TURRET_CAMERA_TRANSFORM_3D);
+    rightTurretCameraPoseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, RIGHT_TURRET_CAMERA_TRANSFORM_3D);
+    leftRobotCameraPoseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, LEFT_ROBOT_CAMERA_TRANSFORM_3D);
+    rightRobotCameraPoseEstimator = new PhotonPoseEstimator(FIELD_LAYOUT, RIGHT_ROBOT_CAMERA_TRANSFORM_3D);
 
+    robotPose = new Pose3d();
   }
 
+  /**Checks if a tag is usable. If the tag pose is present, meets the ambiguity requirement, and is not too far, it is usable.
+   * 
+   * @param tag The tag to check
+   */
   public boolean tagIsUsable(PhotonTrackedTarget tag) {
     return
       FIELD_LAYOUT.getTagPose(tag.getFiducialId()).isPresent() && 
@@ -72,14 +65,35 @@ public class PhotonVision extends SubsystemBase {
       tag.getBestCameraToTarget().getTranslation().toTranslation2d().getNorm() < TAG_CUTOFF_DISTANCE;
   }
 
-  public Optional<EstimatedRobotPose> getRobotPoseWithMultiTags(PhotonPipelineResult result) {
-    return poseEstimator.estimateCoprocMultiTagPose(result);
+  /**Calculates the Pose3d of the robot by averaging the Pose3d calculations from each camera using multiple unique tags.
+   * 
+   * @return The averaged Pose3d of the robot using multiple unique tags.
+   */
+  public Pose3d getRobotPoseWithMultiTags() {
+    return new Pose3d(getAveragedXWithMultiTags(), getAveragedYWithMultiTags(), 0, new Rotation3d(0, 0, getAveragedYawWithMultiTags()));
   }
 
-  public Optional<EstimatedRobotPose> getRobotPoseWithSingleTag(PhotonPipelineResult result) {
-    return poseEstimator.estimateLowestAmbiguityPose(result);
+  /**Calculates the Pose3d of the robot by averaging the Pose3d calculations from each camera using a single tag.
+   * 
+   * @return The average Pose3d of the robot using a single tag.
+   */
+  public Pose3d getRobotPoseWithSingleTag() {
+    return new Pose3d(getAveragedXWithSingleTag(), getAveragedXWithSingleTag(), 0, new Rotation3d(0, 0, getAveragedYawWithSingleTag()));
   }
 
+  /**Returns the best PhotonPipelineResult from a singular camera.
+   * 
+   * @param camera The camera from which to pull the results.
+   * @return The best PhotonPipelineResult from the given camera.
+   */
+  public PhotonPipelineResult getPhotonPipeline(PhotonCamera camera) {
+    return camera.getAllUnreadResults().get(0);
+  }
+
+  /**Returns all tags seen by all cameras.
+   * 
+   * @return The list of tags seen.
+   */
   public List<PhotonTrackedTarget> getAllTagsSeen() {
     List<PhotonTrackedTarget> tags = new ArrayList<>();
     for(PhotonPipelineResult result : allCameraResults) {
@@ -93,6 +107,11 @@ public class PhotonVision extends SubsystemBase {
     return tags;
   }
 
+  /**Returns the requested tag.
+   * 
+   * @param tagID The ID of the tag to look for.
+   * @return The requested tag.
+   */
   public PhotonTrackedTarget getSpecificTag(double tagID) {
     List<PhotonTrackedTarget> wantedTags = new ArrayList<>();
 
@@ -117,10 +136,18 @@ public class PhotonVision extends SubsystemBase {
     return bestTag;
   }
 
+  /**Sets the hub tag to track.
+   * 
+   * @param tag The hub tag to track.
+   */
   public void setTrackedHubTag(PhotonTrackedTarget tag) {
     trackedHubTag = tag;
   }
 
+  /**Checks to see if an alliance hub tag is present.
+   * 
+   * @return {@code true} if an alliance hub tag is present, {@code false} otherwise.
+   */
   public boolean allianceHubTagIsPresent() {
     for(PhotonPipelineResult result : allCameraResults) {
       for(PhotonTrackedTarget tag : result.getTargets()) {
@@ -147,6 +174,10 @@ public class PhotonVision extends SubsystemBase {
     return false;
   }
 
+  /**Checks to see if an alliance outpost tag is present.
+   * 
+   * @return {@code true} if an alliance outpost tag is present, {@code false} otherwise.
+   */
   public boolean allianceOutpostTagIsPresent() {
     for(PhotonPipelineResult result : allCameraResults) {
       for(PhotonTrackedTarget tag : result.getTargets()) {
@@ -171,6 +202,10 @@ public class PhotonVision extends SubsystemBase {
     return false;
   }
 
+  /**Checks to see if an alliance tower tag is present.
+   * 
+   * @return {@code true} if an alliance tower tag is present, {@code false} otherwise.
+   */
   public boolean allianceTowerTagIsPresent() {
     for(PhotonPipelineResult result : allCameraResults) {
       for(PhotonTrackedTarget tag : result.getTargets()) {
@@ -195,7 +230,11 @@ public class PhotonVision extends SubsystemBase {
     return false;
   }
 
-  public boolean tagIsPresent() {
+  /**Checks if there is a tag present in any camera.
+   * 
+   * @return {@code true} if there is a tag, {@code false} if not.
+   */
+  public boolean tagIsPresentAcrossAllCameras() {
     for(PhotonPipelineResult result : allCameraResults) {
       for(PhotonTrackedTarget tag : result.getTargets()) {
         if(tagIsUsable(tag)) {
@@ -206,14 +245,45 @@ public class PhotonVision extends SubsystemBase {
     return false;
   }
 
+  /**Checks if there is a tag present in a specific camera.
+   * 
+   * @param camera The camera to check.
+   * @return {@code true} if there is a tag, {@code false} if not.
+   */
+  public boolean tagIsPresentInCamera(PhotonCamera camera) {
+    for(PhotonPipelineResult result : camera.getAllUnreadResults()) {
+      for(PhotonTrackedTarget tag : result.getTargets()) {
+        if(tagIsUsable(tag)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**Get the yaw to the given tag.
+   * 
+   * @param tag The tag to get the yaw to.
+   * @return The yaw to the given tag.
+   */
   public double getHorizontalAngleToTarget(PhotonTrackedTarget tag) {
     return tag.getYaw();
   }
 
+  /**Get the pitch to the given tag.
+   * 
+   * @param tag The tag to get the pitch to.
+   * @return The pitch to the given tag.
+   */
   public double getVerticalAngleToTarget(PhotonTrackedTarget tag) {
     return tag.getPitch();
   }
 
+  /**Get the PhotonPipelineResults from all the cameras.
+   * 
+   * @return The list of PhotonPipelineResults.
+   */
   public List<PhotonPipelineResult> getAllCameraPipelines() {
     List<PhotonPipelineResult> allCamResults = new ArrayList<>();
     List<PhotonPipelineResult> leftTurretResult = new ArrayList<>();
@@ -234,14 +304,235 @@ public class PhotonVision extends SubsystemBase {
     return allCamResults;
   }
 
+  /**Get the average X position from Pose3d calculations across all cameras using multiple unique tags.
+   * 
+   * @return The average X position.
+   */
+  public double getAveragedXWithMultiTags() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraX = 0;
+    double rightTurretCameraX = 0;
+    double leftRobotCameraX = 0;
+    double rightRobotCameraX = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraX = leftTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraX = rightTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraX = leftRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraX = rightRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    return (leftTurretCameraX + rightTurretCameraX + leftRobotCameraX + rightRobotCameraX) / numberOfCamsWithTags;
+  }
+
+  /**Get the average Y position from Pose3d calculations across all cameras using multiple unique tags.
+   * 
+   * @return The average Y position.
+   */
+  public double getAveragedYWithMultiTags() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraY = 0;
+    double rightTurretCameraY = 0;
+    double leftRobotCameraY = 0;
+    double rightRobotCameraY = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraY = leftTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraY = rightTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraY = leftRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraY = rightRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    return (leftTurretCameraY + rightTurretCameraY + leftRobotCameraY + rightRobotCameraY) / numberOfCamsWithTags;
+  }
+
+  /**Get the average yaw from Pose3d calculations across all cameras using multiple unique tags.
+   * 
+   * @return The average yaw.
+   */
+  public double getAveragedYawWithMultiTags() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraYaw = 0;
+    double rightTurretCameraYaw = 0;
+    double leftRobotCameraYaw = 0;
+    double rightRobotCameraYaw = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraYaw = leftTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraYaw = rightTurretCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraYaw = leftRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraYaw = rightRobotCameraPoseEstimator.estimateCoprocMultiTagPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    return ((leftTurretCameraYaw + rightTurretCameraYaw + leftRobotCameraYaw + rightRobotCameraYaw) / numberOfCamsWithTags) * (180/Math.PI);
+  }
+
+  /**Get the average X position from Pose3d calculations across all cameras using a single tag.
+   * 
+   * @return The average X position.
+   */
+  public double getAveragedXWithSingleTag() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraX = 0;
+    double rightTurretCameraX = 0;
+    double leftRobotCameraX = 0;
+    double rightRobotCameraX = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraX = leftTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraX = rightTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraX = leftRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraX = rightRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getX();
+      numberOfCamsWithTags++;
+    }
+
+    return (leftTurretCameraX + rightTurretCameraX + leftRobotCameraX + rightRobotCameraX) / numberOfCamsWithTags;
+  }
+
+  /**Get the average Y position from Pose3d calculations across all cameras using a single tag.
+   * 
+   * @return The average Y position.
+   */
+  public double getAveragedYWithSingleTag() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraY = 0;
+    double rightTurretCameraY = 0;
+    double leftRobotCameraY = 0;
+    double rightRobotCameraY = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraY = leftTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraY = rightTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraY = leftRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraY = rightRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getY();
+      numberOfCamsWithTags++;
+    }
+
+    return (leftTurretCameraY + rightTurretCameraY + leftRobotCameraY + rightRobotCameraY) / numberOfCamsWithTags;
+  }
+
+  /**Get the average yaw from Pose3d calculations across all cameras using a single tag.
+   * 
+   * @return The average yaw.
+   */
+  public double getAveragedYawWithSingleTag() {
+    double numberOfCamsWithTags = 0;
+
+    double leftTurretCameraYaw = 0;
+    double rightTurretCameraYaw = 0;
+    double leftRobotCameraYaw = 0;
+    double rightRobotCameraYaw = 0;
+
+    if(tagIsPresentInCamera(leftTurretCamera)) {
+      leftTurretCameraYaw = leftTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftTurretCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightTurretCamera)) {
+      rightTurretCameraYaw = rightTurretCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightTurretCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(leftRobotCamera)) {
+      leftRobotCameraYaw = leftRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(leftRobotCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    if(tagIsPresentInCamera(rightRobotCamera)) {
+      rightRobotCameraYaw = rightRobotCameraPoseEstimator.estimateLowestAmbiguityPose(getPhotonPipeline(rightRobotCamera)).get().estimatedPose.getRotation().getAngle();
+      numberOfCamsWithTags++;
+    }
+
+    return ((leftTurretCameraYaw + rightTurretCameraYaw + leftRobotCameraYaw + rightRobotCameraYaw) / numberOfCamsWithTags) * (180/Math.PI);
+  }
+
+  /**Gets the Pose3d of the robot.
+   * 
+   * @return The Pose3d of the robot.
+   */
   public Pose3d getRobotPose3d() {
     return robotPose;
   }
 
+  /**Sets the Pose3d of the robot.
+   * 
+   * @param newPose3d The new Pose3d of the robot.
+   */
   public void setRobotPose3d(Pose3d newPose3d) {
     robotPose = newPose3d;
   }
 
+  /**Updates the Pose3d of the robot.
+   * 
+   */
   public void updateRobotPose3d() {
     List<PhotonTrackedTarget> uniqueTags = new ArrayList<>();
 
@@ -271,22 +562,35 @@ public class PhotonVision extends SubsystemBase {
     }
 
     if(uniqueTags.size() <= 1) {
-      getRobotPoseWithSingleTag(allCameraResults.get(allCameraResults.size() - 1));
-      robotPose = getRobotPoseWithSingleTag(allCameraResults.get(allCameraResults.size() - 1)).get().estimatedPose;
+      getRobotPoseWithSingleTag();
+      robotPose = getRobotPoseWithSingleTag();
     }else{
-      getRobotPoseWithMultiTags(allCameraResults.get(allCameraResults.size() - 1));
-      robotPose = getRobotPoseWithMultiTags(allCameraResults.get(allCameraResults.size() - 1)).get().estimatedPose;
+      getRobotPoseWithMultiTags();
+      robotPose = getRobotPoseWithMultiTags();
     }
   }
 
+  /**Gets the X position of the robot.
+   * 
+   * @return The X position of the robot.
+   */
   public double getRobotX() {
     return getRobotPose3d().getX();
   }
 
+  /**Gets the Y position of the robot.
+   * 
+   * @return The Y position of the robot.
+   */
   public double getRobotY() {
     return getRobotPose3d().getY();
   }
 
+  /**Gets the distance to the given tag.
+   * 
+   * @param tag The tag to get the distance to.
+   * @return The distance to the given tag.
+   */
   public double getDistanceToTag(PhotonTrackedTarget tag) {
     double xDistance = Math.abs(FIELD_LAYOUT.getTagPose(tag.getFiducialId()).get().getX() - getRobotX());
     double yDistance = Math.abs(FIELD_LAYOUT.getTagPose(tag.getFiducialId()).get().getY() - getRobotY());
@@ -294,10 +598,15 @@ public class PhotonVision extends SubsystemBase {
     return Math.abs(Math.sqrt(Math.pow(xDistance, 2) + Math.pow(yDistance, 2)));
   }
 
+  /**Gets the distance to the alliance hub.
+   * 
+   * @return The distance to the alliance hub.
+   */
   public double getDistanceToAllianceHub() {
     return getDistanceToTag(trackedHubTag);
   }
 
+  //Puts data for vision on Elastic
   public void initSendable(SendableBuilder builder) {
     super.initSendable(builder);
 
@@ -306,7 +615,7 @@ public class PhotonVision extends SubsystemBase {
     builder.addBooleanProperty("Alliance Hub Tag Seen", () -> allianceHubTagIsPresent(), null);
     builder.addBooleanProperty("Alliance Tower Tag Seen", () -> allianceTowerTagIsPresent(), null);
     builder.addBooleanProperty("Alliance Outpost Tag Seen", () -> allianceOutpostTagIsPresent(), null);
-    builder.addBooleanProperty("Tag Seen", () -> tagIsPresent(), null);
+    builder.addBooleanProperty("Tag Seen", () -> tagIsPresentAcrossAllCameras(), null);
     builder.addDoubleProperty("Robot X", () -> getRobotX(), null);
     builder.addDoubleProperty("Robot Y", () -> getRobotY(), null);
   }
@@ -314,8 +623,13 @@ public class PhotonVision extends SubsystemBase {
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+
+    //Constantly updates the results from the cameras
     allCameraResults = getAllCameraPipelines();
+    //Constantly updates the robot pose
     updateRobotPose3d();
+    //Constantly checks to see if the alliance hub tag is present
+    //If present, constantly get the angle and distance to the alliance hub
     if(allianceHubTagIsPresent()) {
       getHorizontalAngleToTarget(trackedHubTag);
       getDistanceToAllianceHub();
