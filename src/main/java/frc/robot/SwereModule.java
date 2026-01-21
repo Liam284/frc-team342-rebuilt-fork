@@ -8,9 +8,11 @@ import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
@@ -23,11 +25,11 @@ import edu.wpi.first.wpilibj.motorcontrol.Spark;
 
 /** Add your docs here. */
 public class SwereModule {
-    private SparkMax driveMotor;
-    private SparkMax rotateMotor;
+    private SparkFlex driveMotor;
+    private SparkFlex rotateMotor;
 
-    private SparkMaxConfig driveConfig;
-    private SparkMaxConfig rotateConfig;
+    private SparkFlexConfig driveConfig;
+    private SparkFlexConfig rotateConfig;
 
     private RelativeEncoder driveEncoder;
     private RelativeEncoder rotateEncoder;
@@ -45,11 +47,11 @@ public class SwereModule {
     private String label;
 
     public SwereModule(int driveID, int rotateID, int CANcoderId, boolean invertRotate, boolean invertDrive, double encoderOffset, double diameter, String label){
-        driveMotor = new SparkMax(driveID, MotorType.kBrushless);
-        rotateMotor = new SparkMax(rotateID, MotorType.kBrushless);
+        driveMotor = new SparkFlex(driveID, MotorType.kBrushless);
+        rotateMotor = new SparkFlex(rotateID, MotorType.kBrushless);
 
-        driveConfig = new SparkMaxConfig();
-        rotateConfig = new SparkMaxConfig();
+        driveConfig = new SparkFlexConfig();
+        rotateConfig = new SparkFlexConfig();
 
         driveConfig
             .smartCurrentLimit(60)
