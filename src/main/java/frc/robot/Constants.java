@@ -135,4 +135,8 @@ public final class Constants {
     
     public static final double[] WRIST_PID_VALUES = {0.0, 0.0, 0.0};
   }
+
+  public static class ShooterConstants{
+    public static final int SPINDEXER_ID = 0;
+  }
 }

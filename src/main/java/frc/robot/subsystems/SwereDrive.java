@@ -52,6 +52,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.CustomXboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -202,7 +203,7 @@ public class SwereDrive extends SubsystemBase {
   public void drive(ChassisSpeeds chassisSpeeds){
     if(fieldOriented)
       chassisSpeeds = chassisSpeeds.fromFieldRelativeSpeeds(chassisSpeeds, new Rotation2d(gyroRadians()));
-    SwerveModuleState swerveModuleStates[] = kinematics.toWheelSpeeds(chassisSpeeds);
+    this.swerveModuleStates = kinematics.toWheelSpeeds(chassisSpeeds);
 
     frontLeftModule.setState(swerveModuleStates[0]);
     frontRightModule.setState(swerveModuleStates[1]);

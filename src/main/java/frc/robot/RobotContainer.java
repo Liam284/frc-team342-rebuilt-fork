@@ -10,6 +10,7 @@ import frc.robot.commands.ExampleCommand;
 import frc.robot.commands.MoveWristWithJoystick;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.PhotonVision;
+import frc.robot.subsystems.Spindexer;
 import frc.robot.subsystems.SwereDrive;
 import frc.robot.subsystems.Turret;
 import frc.robot.subsystems.Intake;
@@ -36,6 +37,7 @@ public class RobotContainer {
   private final Turret turret;
   private final PhotonVision photonVision;
   private final Intake intake;
+  public final Spindexer spindexer;
 
   private final CustomXboxController driver;
   private final CustomXboxController operator;
@@ -61,6 +63,7 @@ public class RobotContainer {
     swere = new SwereDrive();
     turret = new Turret();
     intake = new Intake();
+    spindexer = new Spindexer();
 
     driver = new CustomXboxController(0);
     operator = new CustomXboxController(1);
@@ -79,10 +82,12 @@ public class RobotContainer {
     swere.setDefaultCommand(swere.driveWithJoystick(driver));
     turret.setDefaultCommand(turretToAngle);
     intake.setDefaultCommand(moveWristWithJoystick);
+    spindexer.setDefaultCommand(spindexer.runSpindexer());
 
     SmartDashboard.putData(swere);
     SmartDashboard.putData(turret);
     SmartDashboard.putData(photonVision);
+    SmartDashboard.putData(spindexer);
     // Configure the trigger bindings
     configureBindings();
   }
