@@ -6,12 +6,13 @@ package frc.robot;
 
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.commands.Autos;
+import frc.robot.commands.DriveWithJoystick;
 import frc.robot.commands.ExampleCommand;
 import frc.robot.commands.MoveWristWithJoystick;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.PhotonVision;
 import frc.robot.subsystems.Spindexer;
-import frc.robot.subsystems.SwereDrive;
+import frc.robot.subsystems.SwerveDrive;
 import frc.robot.subsystems.Turret;
 import frc.robot.subsystems.Intake;
 import edu.wpi.first.wpilibj.Joystick;
@@ -33,7 +34,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 public class RobotContainer {
   // The robot's subsystems and commands are defined here...
   private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
-  private final SwereDrive swere;
+  private final SwerveDrive swere;
   private final Turret turret;
   private final PhotonVision photonVision;
   private final Intake intake;
@@ -45,6 +46,7 @@ public class RobotContainer {
   private final JoystickButton fieldOrientedButton;
   private final JoystickButton turretToggleButton;
 
+  private final DriveWithJoystick driveWithJoystick;
   private final MoveWristWithJoystick moveWristWithJoystick;
 
   private final Command toggleFieldOriented;
@@ -60,7 +62,7 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     photonVision = new PhotonVision();
-    swere = new SwereDrive();
+    swere = new SwerveDrive();
     turret = new Turret();
     intake = new Intake();
     spindexer = new Spindexer();
@@ -74,12 +76,13 @@ public class RobotContainer {
     intakeFuel = Commands.run(() -> {intake.spinIntake(0);}, intake);
     getFuelUnstuck = Commands.run(() -> {intake.spinIntake(0);}, intake);
 
+    driveWithJoystick = new DriveWithJoystick(swere, driver);
     moveWristWithJoystick = new MoveWristWithJoystick(intake, operator);
 
     fieldOrientedButton = new JoystickButton(driver, XboxController.Button.kA.value);
     turretToggleButton = new JoystickButton(operator, XboxController.Button.kStart.value);
 
-    swere.setDefaultCommand(swere.driveWithJoystick(driver));
+    swere.setDefaultCommand(driveWithJoystick);
     turret.setDefaultCommand(turretToAngle);
     intake.setDefaultCommand(moveWristWithJoystick);
     spindexer.setDefaultCommand(spindexer.runSpindexer());
