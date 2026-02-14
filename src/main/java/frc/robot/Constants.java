@@ -9,6 +9,7 @@ import static edu.wpi.first.units.Units.Inches;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 
@@ -59,54 +60,49 @@ public final class Constants {
 
   public static class DriveConstants {
     //Drive motor IDs
-    public static final int FRONT_LEFT_DRIVE_ID = 0;
-    public static final int FRONT_RIGHT_DRIVE_ID = 0;
-    public static final int BACK_LEFT_DRIVE_ID = 0;
-    public static final int BACK_RIGHT_DRIVE_ID = 0;
+    public static final int FRONT_LEFT_DRIVE_ID = 1;
+    public static final int FRONT_RIGHT_DRIVE_ID = 2;
+    public static final int BACK_LEFT_DRIVE_ID = 3;
+    public static final int BACK_RIGHT_DRIVE_ID = 4;
     
     //Rotate motor IDs
-    public static final int FRONT_LEFT_ROTATE_ID = 0;
-    public static final int FRONT_RIGHT_ROTATE_ID = 0;
-    public static final int BACK_LEFT_ROTATE_ID = 0;
-    public static final int BACK_RIGHT_ROTATE_ID = 0;
+    public static final int FRONT_LEFT_ROTATE_ID = 5;
+    public static final int FRONT_RIGHT_ROTATE_ID = 6;
+    public static final int BACK_LEFT_ROTATE_ID = 7;
+    public static final int BACK_RIGHT_ROTATE_ID = 8;
 
     //CANcoder IDs
-    public static final int FRONT_LEFT_CANCODER_ID = 0;
-    public static final int FRONT_RIGHT_CANCODER_ID = 0;
-    public static final int BACK_LEFT_CANCODER_ID = 0;
-    public static final int BACK_RIGHT_CANCODER_ID = 0;
-
-    //Module offsets
-    public static final double FL_OFFSET = 0.0;
-    public static final double FR_OFFSET = 0.0;
-    public static final double BL_OFFSET = 0.0;
-    public static final double BR_OFFSET = 0.0;
+    public static final int FRONT_LEFT_CANCODER_ID = 9;
+    public static final int FRONT_RIGHT_CANCODER_ID = 10;
+    public static final int BACK_LEFT_CANCODER_ID = 11;
+    public static final int BACK_RIGHT_CANCODER_ID = 12;
 
     //Wheel Diameters
-    public static final double FL_DIAMETER = 0.0;
-    public static final double FR_DIAMETER = 0.0;
-    public static final double BL_DIAMETER = 0.0;
-    public static final double BR_DIAMETER = 0.0;
+    public static final double FL_DIAMETER = 4.0;
+    public static final double FR_DIAMETER = 4.0;
+    public static final double BL_DIAMETER = 4.0;
+    public static final double BR_DIAMETER = 4.0;
 
     //Module gear Ratios
-    public static final double DRIVE_GEAR_RATIO = 0.0;
-    public static final double ROTATE_GEAR_RATIO = 0.0;
+    public static final double DRIVE_GEAR_RATIO = 6.03;
+    public static final double ROTATE_GEAR_RATIO = 26.0;
     
     //Conversion factors
     public static final double ROTATE_POSITION_CONVERSION = (2*Math.PI)/ROTATE_GEAR_RATIO;
     public static final double ROTATE_VELOCITY_CONVERSION = ROTATE_POSITION_CONVERSION/60.0;
 
     //PIDF values
-    public static final double[] DRIVE_PIDF_VALUES = {0.0, 0.0, 0.0, 0.0};
-    public static final double[] ROTATE_PID_VALUES = {0.0, 0.0, 0.0};
+    public static final double[] DRIVE_PIDF_VALUES = {0.002, 0, 0.008, 0};
+    public static final double[] DRIVE_SVA_VALUES = {0.0952, 0.044888, 0.00558155};
+    public static final double[] ROTATE_PID_VALUES = {0.55, 0.0, 0.4};
 
     //Max drive and rotate speeds
-    public static final double MAX_DRIVE_SPEED = 0;
-    public static final double MAX_ROTATE_SPEED = 0;
+    public static final double MAX_DRIVE_SPEED = Units.feetToMeters(15);
+    public static final double MAX_ROTATE_SPEED = Math.PI;
 
     //Min drive and rotate speeds
-    public static final double MIN_DRIVE_SPEED = 0;
-    public static final double MIN_ROTATE_SPPEED = 0;
+    public static final double MIN_DRIVE_SPEED = Units.feetToMeters(3);
+    public static final double MIN_ROTATE_SPPEED = 0.5 * Math.PI;
   }
 
   public static class TurretConstants{
