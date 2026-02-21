@@ -65,7 +65,7 @@ public class RobotContainer {
   public RobotContainer() {
     photonVision = new PhotonVision();
     swere = new SwerveDrive();
-    turret = new Turret();
+    turret = new Turret(swere);
     intake = new Intake();
     spindexer = new Spindexer();
     shooter = new Shooter(spindexer, photonVision);
