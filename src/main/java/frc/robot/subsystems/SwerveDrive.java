@@ -59,6 +59,7 @@ public class SwerveDrive extends SubsystemBase {
   private boolean fieldOriented; 
   private boolean slowMode;
   private boolean redSide;
+  private boolean driveAssist;
   
   private int tag;
   
@@ -172,8 +173,9 @@ public class SwerveDrive extends SubsystemBase {
 
 
         field = new Field2d();
+        driveAssist = false;
   
-          configureAutoBuilder();
+        configureAutoBuilder();
     }
 
     /**Checks if the driver station is set to red alliance.
@@ -207,6 +209,14 @@ public class SwerveDrive extends SubsystemBase {
        */
       public boolean getSlowMode() {
         return slowMode;
+      }
+
+      public boolean getDriveAssist(){
+        return driveAssist;
+      }
+
+      public void toggleDriveAssist(){
+        this.driveAssist = !driveAssist;
       }
   
       /**Gets the chassis speeds.

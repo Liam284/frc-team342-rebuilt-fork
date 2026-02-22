@@ -125,8 +125,8 @@ public final class Constants {
     public static final double TURRET_GEAR_RATIO = 12.5;
     public static final double TURRET_POSITION_CONVERSION = 360.0/TURRET_GEAR_RATIO;
 
-    public static final double TURRET_OFFSET_X = Units.inchesToMeters(-8.0); //According to Dylan
-    public static final double TURRET_OFFSET_Y = Units.inchesToMeters(-9.0); //Accodring to Dylan
+    public static final double TURRET_OFFSET_X = Units.inchesToMeters(-8.0); //According to Dylan; double check later
+    public static final double TURRET_OFFSET_Y = Units.inchesToMeters(-9.0); //Accodring to Dylan; double check later
   }
 
   public static class IntakeConstants{
@@ -139,7 +139,7 @@ public final class Constants {
 
     public static final double WRIST_ENCODER_ZERO_OFFSET = 0.0;
 
-    public static final double WRIST_ALLOWED_ERROR = 0.0;
+    public static final double WRIST_ALLOWED_ERROR = 0.1;
     public static final double WRIST_DOWN_POSITION = 0.0;
     public static final double WRIST_UP_POSITION = 0.0;
     
