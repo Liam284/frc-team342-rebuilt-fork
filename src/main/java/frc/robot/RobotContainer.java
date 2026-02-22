@@ -51,6 +51,7 @@ public class RobotContainer {
   private final JoystickButton turretToggleButton;
   private final JoystickButton shootButton;
   private final JoystickButton reverseIntakeButton;
+  private final JoystickButton toggleDriveAssistButton;
   private final POVButton wristDownButton;
   private final POVButton wristUpButton;
 
@@ -60,6 +61,7 @@ public class RobotContainer {
   private final Command toggleFieldOriented;
   private final Command turretToAngle;
   private final Command toggleManualTurret;
+  private final Command toggleDriveAssist;
   private final Command wristDown;
   private final Command wristUp;
   private final Command getFuelUnstuck;
@@ -83,17 +85,19 @@ public class RobotContainer {
 
     toggleFieldOriented = Commands.runOnce(() -> {swere.toggleFieldOriented();}, swere);
     toggleManualTurret = Commands.runOnce(() -> {turret.toggleManual();}, turret);
+    toggleDriveAssist = Commands.runOnce(() -> {swere.toggleDriveAssist();}, swere);
     turretToAngle = Commands.run(() -> {turret.turretToAngle(photonVision.getYawToHub().get(), operator);});
     wristDown = Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_DOWN_POSITION), intake).alongWith(Commands.run(() -> {intake.spinIntake(0.6);}, intake));
     wristUp = Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_UP_POSITION), intake).alongWith(Commands.run(() -> {intake.spinIntake(0);}, intake));
     getFuelUnstuck = Commands.runEnd(() -> {intake.spinIntake(-0.6);}, () -> intake.stopIntake(), intake);
     shoot = Commands.runEnd(() -> shooter.shootWithDistance(), () -> shooter.shootWithoutPID(0), shooter);
 
-    driveWithJoystick = new DriveWithJoystick(swere, driver);
+    driveWithJoystick = new DriveWithJoystick(swere, driver, photonVision);
     moveWristWithJoystick = new MoveWristWithJoystick(intake, operator);
 
     fieldOrientedButton = new JoystickButton(driver, XboxController.Button.kA.value);
     turretToggleButton = new JoystickButton(operator, XboxController.Button.kStart.value);
+    toggleDriveAssistButton = new JoystickButton(driver, XboxController.Button.kB.value);
     shootButton = new JoystickButton(operator, XboxController.Button.kRightBumper.value);
     reverseIntakeButton = new JoystickButton(operator, XboxController.Button.kLeftBumper.value);
     wristDownButton = new POVButton(operator, 180);
@@ -132,6 +136,7 @@ public class RobotContainer {
     m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
     fieldOrientedButton.onTrue(toggleFieldOriented); // 'A' button
     turretToggleButton.onTrue(toggleManualTurret); // 'Start' button
+    toggleDriveAssistButton.onTrue(toggleDriveAssist); // 'B' button
     shootButton.whileTrue(shoot);
     wristUpButton.onTrue(wristUp);
     wristDownButton.onTrue(wristDown);
