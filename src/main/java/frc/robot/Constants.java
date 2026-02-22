@@ -116,26 +116,25 @@ public final class Constants {
   }
 
   public static class TurretConstants{
-    public static final int TURRET_ID = 0;
-    public static final int[] TURRET_PID_VALUES = {0, 0, 0};
+    public static final int TURRET_ID = 17;
+    public static final double[] TURRET_PID_VALUES = {0.01, 0, 0};
 
-    //Will be used if turret doesn't use a slip ring
     public static final double TURRET_MIN_ANGLE = 0; //The minimum angle the turret can safely be at; change later
     public static final double TURRET_MAX_ANGLE = 0; //The maximum angle the turret can safely be at; change later
 
-    public static final double TURRET_GEAR_RATIO = 0;
-    public static final double TURRET_POSITION_CONVERSION = 360/TURRET_GEAR_RATIO;
+    public static final double TURRET_GEAR_RATIO = 12.5;
+    public static final double TURRET_POSITION_CONVERSION = 360.0/TURRET_GEAR_RATIO;
 
-    public static final double TURRET_OFFSET_X = Units.feetToMeters(0); //update with other values later; according to field coordinates
-    public static final double TURRET_OFFSET_Y = Units.feetToMeters(0); //update with other values later; according to field coordingates
+    public static final double TURRET_OFFSET_X = Units.inchesToMeters(-8.0); //According to Dylan
+    public static final double TURRET_OFFSET_Y = Units.inchesToMeters(-9.0); //Accodring to Dylan
   }
 
   public static class IntakeConstants{
-    public static final int INTAKE_ID = 0;
-    public static final int WRIST_ID = 0;
+    public static final int INTAKE_ID = 13;
+    public static final int WRIST_ID = 14;
     public static final int WRIST_ENCODER_ID = 0;
     
-    public static final double WRIST_GEAR_RATIO = 3.0;
+    public static final double WRIST_GEAR_RATIO = 25.0;
     public static final double WRIST_POSITION_CONVERSION_FACTOR = (2*Math.PI) / WRIST_GEAR_RATIO;
 
     public static final double WRIST_ENCODER_ZERO_OFFSET = 0.0;
@@ -148,14 +147,14 @@ public final class Constants {
   }
 
   public static class ShooterConstants{
-    public static final int SPINDEXER_ID = 0;
-    public static final int TOP_SHOOTER_MOTOR_ID = 0;
-    public static final int BOTTOM_SHOOTER_MOTOR_ID = 0;
-    public static final int FEEDER_MOTOR_ID = 0;
+    public static final int SPINDEXER_ID = 15;
+    public static final int TOP_SHOOTER_MOTOR_ID = 19;
+    public static final int BOTTOM_SHOOTER_MOTOR_ID = 18;
+    public static final int FEEDER_MOTOR_ID = 16;
 
     public static final int SHOOTER_VELOCITY_ERROR = 0;
 
-    public static final double[] TOP_SHOOTER_PID_VALUES = {0.0, 0.0, 0.0};
-    public static final double[] BOTTOM_SHOOTER_PID_VALUES = {0.0, 0.0, 0.0};
+    public static final double[] TOP_SHOOTER_PID_VALUES = {0.23, 0, 0.7};
+    public static final double[] BOTTOM_SHOOTER_PID_VALUES = {0.23, 0, 0.7};
   }
 }

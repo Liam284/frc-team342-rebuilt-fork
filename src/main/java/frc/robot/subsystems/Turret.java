@@ -104,9 +104,9 @@ public class Turret extends SubsystemBase {
    * @return Y coordinate of the turret on the field
    */
   public double getTurretY(){
-    double h = swerve.getPose2d().getY();
-    double k = swerve.getPose2d().getX();
-    double robotAngle = swerve.getGyro().getYaw();
+    double h = swerve.getPose2d().getY(); //Robot Y coordinate
+    double k = swerve.getPose2d().getX(); //Robot X coordinate
+    double robotAngle = ((swerve.getGyro().getYaw() % 360.0) + 360) % 360; //Robot rotation
     double y = h + TurretConstants.TURRET_OFFSET_Y;
     double x = k + TurretConstants.TURRET_OFFSET_X;
     return h +((y-h)*Math.cos(robotAngle)) - ((x-k) * Math.sin(robotAngle));
@@ -118,7 +118,7 @@ public class Turret extends SubsystemBase {
   public double getTurretX(){
     double h = swerve.getPose2d().getY(); //Robot y coordinate
     double k = swerve.getPose2d().getX(); //Robot x coordinate
-    double robotAngle = swerve.getGyro().getYaw(); //Robot rotation in degrees
+    double robotAngle = ((swerve.getGyro().getYaw() % 360.0) + 360) % 360; //Robot rotation in degrees
     double y = h + TurretConstants.TURRET_OFFSET_Y; //Original y coordinate of turret relative to robot center y coordinate
     double x = k + TurretConstants.TURRET_OFFSET_X; //Original x coordinate of turret relative to robot center x coordinate
     return k +((y-h)*Math.sin(robotAngle)) + ((x-k) * Math.cos(robotAngle));
@@ -131,7 +131,7 @@ public class Turret extends SubsystemBase {
   public double getAngleToPose(Pose2d pose){
     double x = pose.getX() - getTurretX();
     double y = pose.getY() - getTurretY();
-    return Math.atan(x/y);
+    return ((Math.atan(x/y))+360)%360;
   }
 
   /**puts the data for the turret on smartdashboard*/
