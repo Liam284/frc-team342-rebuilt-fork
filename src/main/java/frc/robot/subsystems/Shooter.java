@@ -55,6 +55,7 @@ public class Shooter extends SubsystemBase {
 
   private InterpolatingDoubleTreeMap topShooterMap;
   private InterpolatingDoubleTreeMap bottomShooterMap;
+  private InterpolatingDoubleTreeMap flightTimeMap;
 
   private Spindexer spindexer;
   private PhotonVision photonVision;
@@ -83,7 +84,11 @@ public class Shooter extends SubsystemBase {
 
     topShooterMotorConfig
       .idleMode(IdleMode.kCoast)
-      .smartCurrentLimit(60);
+      .smartCurrentLimit(60)
+      .inverted(true);
+
+    topShooterMotorConfig.encoder
+      .velocityConversionFactor(TOP_SHOOTER_VELOCITY_CONVERSION_FACTOR);
     
     topShooterMotorConfig.closedLoop
       .allowedClosedLoopError(SHOOTER_VELOCITY_ERROR, ClosedLoopSlot.kSlot0)
@@ -92,7 +97,11 @@ public class Shooter extends SubsystemBase {
     
     bottomShooterMotorConfig
       .idleMode(IdleMode.kCoast)
-      .smartCurrentLimit(60);
+      .smartCurrentLimit(60)
+      .inverted(true);
+
+    bottomShooterMotorConfig.encoder
+      .velocityConversionFactor(BOTTOM_SHOOTER_VELOCITY_CONVERSION_FACTOR);
 
     bottomShooterMotorConfig.closedLoop
       .allowedClosedLoopError(SHOOTER_VELOCITY_ERROR, ClosedLoopSlot.kSlot0)
@@ -114,12 +123,18 @@ public class Shooter extends SubsystemBase {
 
     topShooterMap = new InterpolatingDoubleTreeMap();
     bottomShooterMap = new InterpolatingDoubleTreeMap();
+    flightTimeMap = new InterpolatingDoubleTreeMap();
 
     //TODO: insert more values after testing
-    put(2, -2200, -1750);
-    put(3, -2500, -1900);
-    put(4, -2700, -1900);
-    put(5, -3200, -1900);
+    put(2.0, 8.77760987417, 9.30958623014);
+    put(3.0, 9.97455667515, 10.1075507641);
+    put(4.0, 10.7725212092, 10.1075507641);
+    put(5.0, 12.7674325442, 10.1075507641);
+
+    flightTimeMap.put(2.0, 1.51425750824);
+    flightTimeMap.put(3.0, 1.71724296687);
+    flightTimeMap.put(4.0, 1.79716732553);
+    flightTimeMap.put(5.0, 1.99467862423);
 
     this.spindexer = spindexer;
     spindexer.setShooting(false);
@@ -149,7 +164,7 @@ public class Shooter extends SubsystemBase {
 
   /**Gets the velocity of the shooter motor controlling the top wheels.
    * 
-   * @return The velocity (in RPM) of the top shooter motor.
+   * @return The velocity (in m/s) of the top shooter motor.
    */
   public double getTopShooterVelocity() {
     return topShooterEncoder.getVelocity();
@@ -157,7 +172,7 @@ public class Shooter extends SubsystemBase {
 
   /**Gets the velocity of the shooter motor controlling the bottom wheels.
    * 
-   * @return The velocity (in RPM) of the bottom shooter motor.
+   * @return The velocity (in m/s) of the bottom shooter motor.
    */
   public double getBottomShooterVelocity() {
     return bottomShooterEncoder.getVelocity();
@@ -165,7 +180,7 @@ public class Shooter extends SubsystemBase {
 
   /**Gets the velocity of the bottom feeder motor.
    * 
-   * @return The velocity (in RPM) of the feeder motor;
+   * @return The velocity (in m/s) of the feeder motor;
    */
   public double getBottomFeederVelocity() {
     return bottomFeederEncoder.getVelocity();
@@ -173,7 +188,7 @@ public class Shooter extends SubsystemBase {
 
   /**Gets the velocity of the top feeder motor.
    * 
-   * @return The velocity (in RPM) of the feeder motor.
+   * @return The velocity (in m/s) of the feeder motor.
    */
   public double getTopFeederVelocity() {
     return topFeederEncoder.getVelocity();
@@ -182,19 +197,28 @@ public class Shooter extends SubsystemBase {
   /**Gets the target velocity of the top shooter motor based on distance from the hub.
    * 
    * @param distance The distance (in meters) from the hub.
-   * @return The target velocity of the top shooter motor (in RPM).
+   * @return The target velocity of the top shooter motor (in m/s).
    */
-  public double getTopTargetRPM(double distance) {
+  public double getTopTargetVelocity(double distance) {
     return topShooterMap.get(distance);
   }
 
   /**Gets the target velocity of the bottom shooter motor based on distance from the hub.
    * 
    * @param distance The distance (in meters) from the hub.
-   * @return The target velocity of the bottom shooter motor (in RPM).
+   * @return The target velocity of the bottom shooter motor (in m/s).
    */
-  public double getBottomTargetRPM(double distance) {
+  public double getBottomTargetVelocity(double distance) {
     return bottomShooterMap.get(distance);
+  }
+
+  /**Gets the flight time of the fuel based on distance from the hub.
+   * 
+   * @param distance The distance (in meters) from the hub.
+   * @return The flight (in seconds) of the fuel.
+   */
+  public double getFlightTime(double distance) {
+    return flightTimeMap.get(distance);
   }
 
   /**Gets the voltage of the top shooter.
@@ -274,23 +298,23 @@ public class Shooter extends SubsystemBase {
   /**Adds a new entry into the top and bottom shooter interpolation maps.
    * 
    * @param meters The distance (in meters) from the hub.
-   * @param topVelocity The velocity (in RPM) of the top shooter motor.
-   * @param bottomVelocity The velocity (in RPM) of the bottom shooter motor.
+   * @param topVelocity The velocity (in m/s) of the top shooter motor.
+   * @param bottomVelocity The velocity (in m/s) of the bottom shooter motor.
    */
   public void put(double meters, double topVelocity, double bottomVelocity) {
     topShooterMap.put(meters, topVelocity);
     bottomShooterMap.put(meters, bottomVelocity);
   }
 
-  /**Sets the target velocity (in RPM) of both shooter motors based on distance from the hub.
+  /**Sets the target velocity (in m/s) of both shooter motors based on distance from the hub.
    * Target velocities are obtained via interpolation.
    * Spins the spindexer and feeder as well.
    * 
    * @param speed The speed to set the feeder to.
    */
   public void shootWithDistance(double speed, Pose2d pose) {
-    topShooterPID.setSetpoint(getTopTargetRPM(photonVision.getDistanceToHub(pose)), ControlType.kVelocity);
-    bottomShooterPID.setSetpoint(getBottomTargetRPM(photonVision.getDistanceToHub(pose)), ControlType.kVelocity);
+    topShooterPID.setSetpoint(getTopTargetVelocity(photonVision.getDistanceToHub(pose)), ControlType.kVelocity);
+    bottomShooterPID.setSetpoint(getBottomTargetVelocity(photonVision.getDistanceToHub(pose)), ControlType.kVelocity);
     feed(speed);
     spindexer.setShooting(true);
     spindexer.setAtDesiredSpeed(topShooterPID.isAtSetpoint() && bottomShooterPID.isAtSetpoint());
@@ -299,9 +323,9 @@ public class Shooter extends SubsystemBase {
   /**Sets the target velocity of both shooter motors to the given velocity.
    * Spins the feeder and spindexer too.
    * 
-   * @param topShooterSpeed The velocity (in RPM) to set the top shooter motor to.
-   * @param bottomShooterSpeed The velocity (in RPM) to set the bottom shooter motor to.
-   * @param feederSpeed The velocity (in RPM) to set the feeder to.
+   * @param topShooterSpeed The velocity (in m/s) to set the top shooter motor to.
+   * @param bottomShooterSpeed The velocity (in m/s) to set the bottom shooter motor to.
+   * @param feederSpeed The velocity (in m/s) to set the feeder to.
    */
   public void shootWithSpeed(double topShooterSpeed, double bottomShooterSpeed, double feederSpeed) {
     topShooterPID.setSetpoint(topShooterSpeed, ControlType.kVelocity);
