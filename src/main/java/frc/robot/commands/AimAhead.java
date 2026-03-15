@@ -14,7 +14,7 @@ import frc.robot.subsystems.PhotonVision;
 import frc.robot.CustomXboxController;
 
 /* You should consider using the more terse Command factories API instead https://docs.wpilib.org/en/stable/docs/software/commandbased/organizing-command-based.html#defining-commands */
-public class ShootWhileMoving extends Command {
+public class AimAhead extends Command {
   private SwerveDrive swerve;
   private Shooter shooter;
   private Turret turret;
@@ -22,12 +22,13 @@ public class ShootWhileMoving extends Command {
   private CustomXboxController controller;
 
   private Pose2d currentPose;
-  private Pose2d nextPose;
+  private static Pose2d nextPose;
 
-  private double exitVelocity;
-  private double flightTime;
-  private double shooterHeight;
-  private double hubHeight;
+  // private double averageShooterSpeed;
+  // private double exitVelocity;
+  // private double flightTime;
+  // private double shooterHeight;
+  // private double hubHeight;
 
   private double xDisplacement;
   private double yDisplacement;
@@ -35,7 +36,7 @@ public class ShootWhileMoving extends Command {
   private double displacedY;
 
   /** Creates a new ShootWhileMoving. */
-  public ShootWhileMoving(SwerveDrive swerve, Shooter shooter, Turret turret, PhotonVision photonVision, CustomXboxController controller) {
+  public AimAhead(SwerveDrive swerve, Shooter shooter, Turret turret, PhotonVision photonVision, CustomXboxController controller) {
     this.swerve = swerve;
     this.shooter = shooter;
     this.turret = turret;
@@ -44,14 +45,15 @@ public class ShootWhileMoving extends Command {
 
     currentPose = photonVision.getRobotPose2d().get();
 
-    exitVelocity = ((shooter.getBottomTargetRPM(photonVision.getDistanceToHub(photonVision.getRobotPose2d().get())) + shooter.getTopTargetRPM(photonVision.getDistanceToHub(photonVision.getRobotPose2d().get()))) / 2) * 0.9;
+    // averageShooterSpeed = (shooter.getBottomTargetRPM(photonVision.getDistanceToHub(currentPose)) + shooter.getTopTargetRPM(photonVision.getDistanceToHub(currentPose))) / 2;
+    // exitVelocity = ((SHOOTER_WHEEL_DIAMETERS * Math.PI * (averageShooterSpeed / 60)) * 0.0254) * 0.9;
     //TODO: get values
-    shooterHeight = 0.0; //meters
-    hubHeight = 0.0; //meters
-    flightTime = ((exitVelocity * Math.sin(65)) + Math.sqrt((Math.pow(exitVelocity * Math.sin(65), 2)) + (19.612 *(shooterHeight - hubHeight)))) / 9.806;
+    // shooterHeight = 0.0; //meters
+    // hubHeight = 0.0; //meters
+    // flightTime = ((exitVelocity * Math.sin(Units.degreesToRadians(65))) + Math.sqrt((Math.pow(exitVelocity * Math.sin(Units.degreesToRadians(65)), 2)) + (19.612 *(shooterHeight - hubHeight)))) / 9.806;
 
-    xDisplacement = swerve.getChassisSpeeds().vxMetersPerSecond * flightTime;
-    yDisplacement = swerve.getChassisSpeeds().vyMetersPerSecond * flightTime;
+    xDisplacement = swerve.getChassisSpeeds().vxMetersPerSecond * shooter.getFlightTime(photonVision.getDistanceToHub(currentPose));
+    yDisplacement = swerve.getChassisSpeeds().vyMetersPerSecond * shooter.getFlightTime(photonVision.getDistanceToHub(currentPose));
 
     displacedX = currentPose.getX() + xDisplacement;
     displacedY = currentPose.getY() + yDisplacement;
@@ -61,6 +63,8 @@ public class ShootWhileMoving extends Command {
       displacedY,
       new Rotation2d(photonVision.getRobotPose2d().get().getRotation().getRadians())
     );
+
+
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(turret);
@@ -74,7 +78,6 @@ public class ShootWhileMoving extends Command {
   @Override
   public void execute() {
     turret.turretToAngle(photonVision.getYawToHub(nextPose), controller);
-    shooter.shootWithDistance(1, nextPose);
   }
 
   // Called once the command ends or is interrupted.
@@ -85,5 +88,9 @@ public class ShootWhileMoving extends Command {
   @Override
   public boolean isFinished() {
     return false;
+  }
+
+  public static Pose2d getNextPose() {
+    return nextPose;
   }
 }
