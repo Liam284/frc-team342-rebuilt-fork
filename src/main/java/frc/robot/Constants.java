@@ -51,7 +51,7 @@ public final class Constants {
     public static final Rotation3d TURRET_CAMERA_ROTATION_3D = new Rotation3d(0, 0, 0); //zero, because it's not used for pose estimation (and it's changing constantly if turret is moving)
     public static final Rotation3d ROBOT_RIGHT_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, -1.023, -0.785);
     public static final Rotation3d ROBOT_LEFT_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, -1.023, -0.785);
-    public static final Rotation3d ROBOT_BACK_CAMERA_ROTATION_3D = new Rotation3d(0, -1.047, Math.PI);
+    public static final Rotation3d ROBOT_BACK_CAMERA_ROTATION_3D = new Rotation3d(0, -0.261799, Math.PI);
 
     public static final Transform3d TURRET_CAMERA_TRANSFORM_3D = new Transform3d(TURRET_CAMERA_TRANSLATION_3D, TURRET_CAMERA_ROTATION_3D);
     public static final Transform3d ROBOT_RIGHT_CAMERA_TRANSFORM_3D = new Transform3d(ROBOT_RIGHT_CAMERA_TRANSLATION_3D, ROBOT_RIGHT_CAMERA_ROTATION_3D);
@@ -104,12 +104,12 @@ public final class Constants {
     public static final double MAX_ROTATE_SPEED = 3 * Math.PI;
 
     //Min drive and rotate speeds
-    public static final double MIN_DRIVE_SPEED = Units.feetToMeters(3);
+    public static final double MIN_DRIVE_SPEED = Units.feetToMeters(6);
     public static final double MIN_ROTATE_SPPEED = Math.PI;
 
     public static final PPHolonomicDriveController PATH_CONFIG_CONTROLLER = new PPHolonomicDriveController(
       new PIDConstants(1, 0, 0.7),
-      new PIDConstants(1.2, 0, 0.55)
+      new PIDConstants(1, 0, 1)
     );
 
     //NavX angle adjustment (degrees)
@@ -118,16 +118,20 @@ public final class Constants {
 
   public static class TurretConstants{
     public static final int TURRET_ID = 17;
-    public static final double[] TURRET_PID_VALUES = {0.01, 0, 0};
+    public static final double[] TURRET_PID_VALUES_SLOT0 = {0.005, 0, 0};
+    public static final double[] TURRET_PID_VALUES_SLOT1 = {0.04, 0, 0.015};
 
-    public static final double TURRET_MIN_ANGLE = 0; //The minimum angle the turret can safely be at; change later
-    public static final double TURRET_MAX_ANGLE = 0; //The maximum angle the turret can safely be at; change later
+    public static final double TURRET_MIN_ANGLE = -90;
+    public static final double TURRET_MAX_ANGLE = 160.0;
+    public static final double TURRET_ALLOWED_ERROR = 0.5;
 
     public static final double TURRET_GEAR_RATIO = 12.5;
-    public static final double TURRET_POSITION_CONVERSION = 360.0/TURRET_GEAR_RATIO;
+    public static final double TURRET_POSITION_CONVERSION = (2*Math.PI/TURRET_GEAR_RATIO) * 180/Math.PI;
 
-    public static final double TURRET_OFFSET_X = -0.131; //According to Dylan; double check later
-    public static final double TURRET_OFFSET_Y = 0.151; //Accodring to Dylan; double check later
+    public static final double TURRET_OFFSET_X = -0.131;
+    public static final double TURRET_OFFSET_Y = 0.151;
+
+    public static final double THROUGHBORE_ZERO = 0.2887135572178389;
   }
 
   public static class IntakeConstants{

@@ -447,10 +447,9 @@ public class PhotonVision extends SubsystemBase {
   /**Gets the yaw from the robot to the hub.
    * 
    * @return The yaw (in degrees) from the robot to the hub.
-   * If the distance to the hub is not present, this returns 0.0.
    */
   public double getYawToHub(Pose2d pose) {
-    return getDistanceToHub(pose) > 0.0 ? allCameras[0].getYawToHub().get() : 0.0;
+    // return getDistanceToHub(pose) > 0.0 ? allCameras[0].getYawToHub().get() : 0.0;
 
     // if(getDistanceToHub(pose) > 0.0) {
     // //   // double x = FIELD_LAYOUT.getTagPose(getClosestCenterHubTag()).get().getX() - pose2d.getX();
@@ -461,6 +460,11 @@ public class PhotonVision extends SubsystemBase {
     // }
 
     // return 0.0;
+    return PhotonUtils.getYawToPose(pose, getHubCenterPose2d()).getDegrees();
+  }
+
+  public void setTurretPose2d(double x, double y, double rotation) {
+    turretPose2d = new Pose2d(x, y, new Rotation2d(rotation));
   }
 
   //Puts data for vision on Elastic
@@ -500,7 +504,7 @@ public class PhotonVision extends SubsystemBase {
   public void periodic() {
     // This method will be called once per scheduler run
     updatePose3d();
-    updateTurretPose2d();
+    // updateTurretPose2d();
     
     getDistanceToHub(getTurretPose2d().get());
     getYawToHub(getTurretPose2d().get());

@@ -127,10 +127,18 @@ public class Shooter extends SubsystemBase {
     flightTimeMap = new InterpolatingDoubleTreeMap();
 
     //TODO: insert more values after testing
-    put(2.0, 8.77760987417, 9.30958623014);
-    put(3.0, 9.97455667515, 10.1075507641);
-    put(4.0, 10.7725212092, 10.1075507641);
-    put(5.0, 12.7674325442, 10.1075507641);
+    // put(2.0, 8.77760987417, 9.30958623014);
+    put(2.159714161664487, 8.79 - 0.15, 9.26 - 0.15);
+    put(2.5729031307368464, 9.46 - 0.15, 9.77 - 0.15);
+    put(2.7974383174127144, 9.5 - 0.15, 9.78 - 0.15);
+    // put(3.0, 9.97455667515, 10.1075507641);
+    put(3.102963547816569, 10.05 - 0.15, 10.1 - 0.15);
+    put(3.684626975998755, 10.15 - 0.15, 10.1 - 0.15);
+    // put(4.0, 10.7725212092, 10.1075507641);
+    put(4.141048999496158, 10.11 - 0.15, 10.18 - 0.15);
+    // put(5.0, 12.7674325442, 10.1075507641);
+    put(5.560794830193121, 11.5 - 0.15, 10.8 - 0.15);
+    put(5.835646600423712, 11.7 - 0.15, 11 - 0.15);
 
     flightTimeMap.put(2.0, 1.51425750824);
     flightTimeMap.put(3.0, 1.71724296687);
@@ -318,6 +326,7 @@ public class Shooter extends SubsystemBase {
    * Spins the spindexer and feeder as well.
    * 
    * @param speed The speed to set the feeder to.
+   * @param pose The pose to get the distance to.
    */
   public void shootWithDistance(double speed, Pose2d pose) {
     topShooterPID.setSetpoint(getTopTargetVelocity(photonVision.getDistanceToHub(pose)), ControlType.kVelocity);
@@ -405,6 +414,9 @@ public class Shooter extends SubsystemBase {
     builder.addDoubleProperty("Bottom Shooter Voltage", () -> getBottomShooterVoltage(), null);
     builder.addDoubleProperty("Top Shooter Position", () -> getTopShooterPosition(), null);
     builder.addDoubleProperty("Bottom Shooter Position", () -> getBottomShooterPosition(), null);
+    builder.addDoubleProperty("Interpolated Top Shooter Velocity", () -> getTopTargetVelocity(photonVision.getDistanceToHub(photonVision.getTurretPose2d().get())), null);
+    builder.addDoubleProperty("Interpolated Bottom Shooter Velocity", () -> getBottomTargetVelocity(photonVision.getDistanceToHub(photonVision.getTurretPose2d().get())), null);
+    builder.addBooleanProperty("Able to Shoot", () -> photonVision.tagIsPresentAcrossAllCameras(), null);
   }
 
   @Override
