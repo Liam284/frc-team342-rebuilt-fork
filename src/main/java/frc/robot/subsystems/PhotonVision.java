@@ -29,7 +29,7 @@ public class PhotonVision extends SubsystemBase {
 
   private final Camera[] allCameras;
 
-  private Camera turretCamera;
+  // private Camera robotBLCamera;
   private Camera robotRightCamera;
   private Camera robotLeftCamera;
   private Camera robotBackCamera;
@@ -40,18 +40,20 @@ public class PhotonVision extends SubsystemBase {
 
   private Field2d field;
 
+  private double timestamp;
+
   /** Creates a new PhotonVision. */
   public PhotonVision() {
-    turretCamera = new Camera(TURRET_CAMERA, TURRET_CAMERA_TRANSFORM_3D);
+    // robotBLCamera = new Camera(ROBOT_BL_CAMERA, ROBOT_BL_CAMERA_TRANSFORM_3D);
     robotRightCamera = new Camera(ROBOT_RIGHT_CAMERA, ROBOT_RIGHT_CAMERA_TRANSFORM_3D);
     robotLeftCamera = new Camera(ROBOT_LEFT_CAMERA, ROBOT_LEFT_CAMERA_TRANSFORM_3D);
     robotBackCamera = new Camera(ROBOT_BACK_CAMERA, RIGHT_BACK_CAMERA_TRANSFORM_3D);
 
-    allCameras = new Camera[4];
-    allCameras[0] = turretCamera;
-    allCameras[1] = robotRightCamera;
-    allCameras[2] = robotLeftCamera;
-    allCameras[3] = robotBackCamera;
+    allCameras = new Camera[3];
+    // allCameras[0] = robotBLCamera;
+    allCameras[0] = robotRightCamera;
+    allCameras[1] = robotLeftCamera;
+    allCameras[2] = robotBackCamera;
 
     pose3d = new Pose3d();
     pose2d = new Pose2d();
@@ -186,7 +188,7 @@ public class PhotonVision extends SubsystemBase {
    * @return The pose2d of the robot.
    */
   public Optional<Pose2d> getRobotPose2d() {
-    return Optional.of(getRobotPose3d().get().toPose2d());
+    return Optional.of(pose2d);
   }
 
   /**Gets the pose2d of the turret.
@@ -254,7 +256,7 @@ public class PhotonVision extends SubsystemBase {
     int numCamsUsed = 0;
     double yaw = 0;
 
-    for(int i = 1; i < allCameras.length; i++) {
+    for(int i = 0; i < allCameras.length; i++) {
       if(allCameras[i].getRobotPose3d().isPresent()) {
         yaw += allCameras[i].getRobotToTagYaw(tag).get();
         numCamsUsed++;
@@ -273,7 +275,7 @@ public class PhotonVision extends SubsystemBase {
     int numCamsUsed = 0;
     double pitch = 0;
 
-    for(int i = 1; i < allCameras.length; i++) {
+    for(int i = 0; i < allCameras.length; i++) {
       if(allCameras[i].getRobotPose3d().isPresent()) {
         pitch += allCameras[i].getRobotToTagPitch(tag).get();
         numCamsUsed++;
@@ -281,6 +283,10 @@ public class PhotonVision extends SubsystemBase {
     }
 
     return Optional.of(pitch /= numCamsUsed);
+  }
+
+  public double getTimestampOfPose() {
+    return timestamp;
   }
 
   /**Updates the robot pose3d using the best pose from the cameras.
@@ -327,13 +333,14 @@ public class PhotonVision extends SubsystemBase {
     Pose3d bestPose = null;
     double lowestAmbiguity = 10;
 
-    for(int i = 1; i < allCameras.length; i++) {
+    for(int i = 0; i < allCameras.length; i++) {
       allCameras[i].updateRobotPose();
 
       if(allCameras[i].getRobotPose3d().isPresent()) {
         if(allCameras[i].getPoseAmbiguity().get() != -1 && allCameras[i].getPoseAmbiguity().get() < lowestAmbiguity) {
           bestPose = allCameras[i].getRobotPose3d().get();
           lowestAmbiguity = allCameras[i].getPoseAmbiguity().get();
+          timestamp = allCameras[i].getTimestamp();
         }
       }
     }
@@ -345,14 +352,18 @@ public class PhotonVision extends SubsystemBase {
     }
   }
 
-  /**Updates the pose2d of the turret.
-   * 
-   */
-  public void updateTurretPose2d() {
-    allCameras[0].updateRobotPose();
-
-    turretPose2d = allCameras[0].getRobotPose2d().get();
+  public void updatePose2d() {
+    this.pose2d = getRobotPose3d().get().toPose2d();
   }
+
+  // /**Updates the pose2d of the turret.
+  //  * 
+  //  */
+  // public void updateTurretPose2d() {
+  //   allCameras[0].updateRobotPose();
+
+  //   turretPose2d = allCameras[0].getRobotPose2d().get();
+  // }
 
   /**Sets the robot pose3d to the given pose3d.
    * 
@@ -483,13 +494,13 @@ public class PhotonVision extends SubsystemBase {
     builder.addDoubleProperty("Robot Roll", () -> getRobotRoll().get(), null);
     builder.addDoubleProperty("Robot Pitch", () -> getRobotPitch().get(), null);
     builder.addDoubleProperty("Robot Yaw", () -> getRobotYaw().get(), null);
-    builder.addDoubleProperty("Turret Camera Ambiguity", () -> allCameras[0].getPoseAmbiguity().get(), null);
-    builder.addDoubleProperty("Right Robot Camera Ambiguity", () -> allCameras[1].getPoseAmbiguity().get(), null);
-    builder.addDoubleProperty("Left Robot Camera Ambiguity", () -> allCameras[2].getPoseAmbiguity().get(), null);
-    builder.addDoubleProperty("Back Robot Camera Ambiguity", () -> allCameras[3].getPoseAmbiguity().get(), null);
+    // builder.addDoubleProperty("Turret Camera Ambiguity", () -> allCameras[0].getPoseAmbiguity().get(), null);
+    builder.addDoubleProperty("Right Robot Camera Ambiguity", () -> allCameras[0].getPoseAmbiguity().get(), null);
+    builder.addDoubleProperty("Left Robot Camera Ambiguity", () -> allCameras[1].getPoseAmbiguity().get(), null);
+    builder.addDoubleProperty("Back Robot Camera Ambiguity", () -> allCameras[2].getPoseAmbiguity().get(), null);
     builder.addDoubleProperty("Distance to Hub", () -> getDistanceToHub(getTurretPose2d().get()), null);
     builder.addDoubleProperty("Yaw to Hub", () -> getYawToHub(getTurretPose2d().get()), null);
-    builder.addDoubleProperty("Tracked Hub Tag ID", () -> allCameras[0].getTrackedHubTag().get().getFiducialId(), null);
+    // builder.addDoubleProperty("Tracked Hub Tag ID", () -> allCameras[0].getTrackedHubTag().get().getFiducialId(), null);
     builder.addDoubleProperty("Turret X", () -> getTurretPose2d().get().getX(), null);
     builder.addDoubleProperty("Turret Y", () -> getTurretPose2d().get().getY(), null);
     builder.addDoubleProperty("Robot Voltage", () -> RobotController.getBatteryVoltage(), null);
@@ -504,12 +515,11 @@ public class PhotonVision extends SubsystemBase {
   public void periodic() {
     // This method will be called once per scheduler run
     updatePose3d();
+    updatePose2d();
     // updateTurretPose2d();
     
     getDistanceToHub(getTurretPose2d().get());
     getYawToHub(getTurretPose2d().get());
-
-    setPose2d(getRobotPose2d().get());
 
     field.setRobotPose(pose2d);
   }

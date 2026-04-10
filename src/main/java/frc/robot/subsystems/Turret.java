@@ -20,6 +20,7 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
@@ -37,15 +38,17 @@ public class Turret extends SubsystemBase {
 
   private SwerveDrive swerve;
 	private PhotonVision vision;
+  private Shooter shooter;
 
   private double goal;
   private boolean manual;
 	private boolean fastTurret;
 
   /** Creates a new Turret. */
-  public Turret(SwerveDrive swerve, PhotonVision vision) {
+  public Turret(SwerveDrive swerve, PhotonVision vision, Shooter shooter) {
     this.swerve = swerve;
 		this.vision = vision;
+    this.shooter = shooter;
 
     turretMotor = new SparkFlex(TurretConstants.TURRET_ID, MotorType.kBrushless);
     turretConfig = new SparkFlexConfig();
@@ -69,11 +72,45 @@ public class Turret extends SubsystemBase {
 			.i(TURRET_PID_VALUES_SLOT1[1], ClosedLoopSlot.kSlot1)
 			.d(TURRET_PID_VALUES_SLOT1[2], ClosedLoopSlot.kSlot1)
       .positionWrappingEnabled(false)
-			.allowedClosedLoopError(TURRET_ALLOWED_ERROR, ClosedLoopSlot.kSlot0);
+			.allowedClosedLoopError(TURRET_ALLOWED_ERROR, ClosedLoopSlot.kSlot0)
+      .allowedClosedLoopError(TURRET_ALLOWED_ERROR, ClosedLoopSlot.kSlot1);
 
     turretMotor.configure(turretConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
     manual = false;
 		fastTurret = false;
+    goal = 0.0;
+  }
+
+  public void trackPose(Pose2d pose, CustomXboxController controller) {
+    if(!manual){
+			double safeGoal = MathUtil.clamp(angleToPose(pose), TURRET_MIN_ANGLE, TURRET_MAX_ANGLE);
+      goal = safeGoal;
+			if(turretEncoder.getPosition() < -40) {
+				turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot1);
+			}else if(turretEncoder.getPosition() > goal) {
+    		turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot0);
+			}else{
+				turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot1);
+			}
+    }else{
+      manualTurret(controller);
+    }
+  }
+
+  public void trackLookAheadPose(Pose2d pose, CustomXboxController controller) {
+    if(!manual){
+			double safeGoal = MathUtil.clamp(angleToLookAheadPose(pose), TURRET_MIN_ANGLE, TURRET_MAX_ANGLE);
+      goal = safeGoal;
+			if(turretEncoder.getPosition() < -40) {
+				turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot1);
+			}else if(turretEncoder.getPosition() > goal) {
+    		turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot0);
+			}else{
+				turretController.setSetpoint(goal, ControlType.kPosition, ClosedLoopSlot.kSlot1);
+			}
+    }else{
+      manualTurret(controller);
+    }
   }
 
   /**Rotates a the turret to an angle when not on manual control; otherwise, it is controlled with a Joystick */
@@ -143,6 +180,25 @@ public class Turret extends SubsystemBase {
 		fastTurret = !fastTurret;
 	}
 
+  public Pose2d[] getLookAheadPoses() {
+    Pose2d currentPose = swerve.getPose2d();
+
+    double xDisplacement = swerve.getChassisSpeeds().vxMetersPerSecond * shooter.getFlightTime(vision.getDistanceToHub(currentPose));
+    double yDisplacement = swerve.getChassisSpeeds().vyMetersPerSecond * shooter.getFlightTime(vision.getDistanceToHub(currentPose));
+    // double rotationDisplacement = swerve.getChassisSpeeds().omegaRadiansPerSecond * shooter.getFlightTime(vision.getDistanceToHub(currentPose));
+
+    double displacedX = currentPose.getX() + xDisplacement;
+    double displacedY = currentPose.getY() + yDisplacement;
+    // double displacedRotation = currentPose.getRotation().getRadians() + rotationDisplacement;
+
+    Pose2d nextRobotPose = new Pose2d(displacedX, displacedY, new Rotation2d(currentPose.getRotation().getRadians()));
+    Pose2d nextTurretPose = nextRobotPose.plus(TURRET_OFFSET);
+
+    Pose2d[] lookAheadPoses = {nextRobotPose, nextTurretPose};
+
+    return lookAheadPoses;
+  }
+
 	/**Returns whether the turret is on fast mode or not.
 	 * 
 	 * @return {@code true} if fast mode, {@code false} otherwise.
@@ -150,6 +206,65 @@ public class Turret extends SubsystemBase {
 	public boolean turretIsFast() {
 		return fastTurret;
 	}
+
+  public double angleToLookAheadPose(Pose2d pose) {
+    double yDistance = pose.getY() - getLookAheadPoses()[1].getY();
+    double xDistance = pose.getX() - getLookAheadPoses()[1].getX();
+
+    Rotation2d angleToTarget = Rotation2d.fromRadians(Math.atan2(yDistance, xDistance));
+
+    double ccwDesiredTurretAngle = -(180 + (MathUtil.inputModulus(angleToTarget.getDegrees(), -180, 180) - MathUtil.inputModulus(getLookAheadPoses()[0].getRotation().getDegrees(), -180, 180)));
+    double cwDesiredTurretAngle = 180 - (MathUtil.inputModulus(angleToTarget.getDegrees(), -180, 180) - MathUtil.inputModulus(getLookAheadPoses()[0].getRotation().getDegrees(), -180, 180));
+
+    double ccwAngleDistance = Math.abs(0 - ccwDesiredTurretAngle);
+    double cwAngleDistance = Math.abs(0 - cwDesiredTurretAngle);
+
+    if(ccwDesiredTurretAngle < TURRET_MIN_ANGLE && cwDesiredTurretAngle < TURRET_MAX_ANGLE) {
+      goal = cwDesiredTurretAngle;
+    }else if(ccwDesiredTurretAngle > TURRET_MIN_ANGLE && cwDesiredTurretAngle > TURRET_MAX_ANGLE) {
+      goal = ccwDesiredTurretAngle;
+    }else if(ccwDesiredTurretAngle > TURRET_MIN_ANGLE && cwDesiredTurretAngle < TURRET_MAX_ANGLE) {
+      goal = ccwAngleDistance < cwAngleDistance ? ccwDesiredTurretAngle : cwDesiredTurretAngle;
+    }else{
+      goal = turretEncoder.getPosition();
+    }
+
+    return goal;
+  }
+
+  public double angleToPose(Pose2d pose) {
+    Pose2d robotPose = swerve.getPose2d();
+    // System.out.println("rPose: " + robotPose);
+    Pose2d turretPose = robotPose.plus(TurretConstants.TURRET_OFFSET);
+    // System.out.println("tPose: " + turretPose);
+
+    double yDistance = pose.getY() - turretPose.getY();
+    double xDistance = pose.getX() - turretPose.getX();
+    // System.out.println("y: " + yDistance);
+    // System.out.println("x: " + xDistance);
+
+    Rotation2d angleToTarget = Rotation2d.fromRadians(Math.atan2(yDistance, xDistance));
+    // System.out.println(angleToTarget);
+    double ccwDesiredTurretAngle = -(180 + (MathUtil.inputModulus(angleToTarget.getDegrees(), -180, 180) - MathUtil.inputModulus(robotPose.getRotation().getDegrees(), -180, 180)));
+    // System.out.println("ccwDesiredTurretAngle: " + ccwDesiredTurretAngle);
+    double cwDesiredTurretAngle = 180 - (MathUtil.inputModulus(angleToTarget.getDegrees(), -180, 180) - MathUtil.inputModulus(robotPose.getRotation().getDegrees(), -180, 180));
+    // System.out.println("cwDesiredTurretAngle: " + cwDesiredTurretAngle);
+
+    double ccwAngleDistance = Math.abs(0 - ccwDesiredTurretAngle);
+    double cwAngleDistance = Math.abs(0 - cwDesiredTurretAngle);
+
+    if(ccwDesiredTurretAngle < TURRET_MIN_ANGLE && cwDesiredTurretAngle < TURRET_MAX_ANGLE) {
+      goal = cwDesiredTurretAngle;
+    }else if(ccwDesiredTurretAngle > TURRET_MIN_ANGLE && cwDesiredTurretAngle > TURRET_MAX_ANGLE) {
+      goal = ccwDesiredTurretAngle;
+    }else if(ccwDesiredTurretAngle > TURRET_MIN_ANGLE && cwDesiredTurretAngle < TURRET_MAX_ANGLE) {
+      goal = ccwAngleDistance < cwAngleDistance ? ccwDesiredTurretAngle : cwDesiredTurretAngle;
+    }else{
+      goal = turretEncoder.getPosition();
+    }
+
+    return goal;
+  }
 
 	/**Returns whether the turret is on manual mode or not.
 	 * 
@@ -200,8 +315,9 @@ public class Turret extends SubsystemBase {
   /**puts the data for the turret on smartdashboard*/
   public void initSendable(SendableBuilder builder){
     super.initSendable(builder);
-    builder.addDoubleProperty("Turret position", () -> turretEncoder.getPosition(), null);
-    builder.addDoubleProperty("Turret goal", () -> turretController.getSetpoint(), null);
+    builder.addDoubleProperty("Turret Position", () -> turretEncoder.getPosition(), null);
+    builder.addDoubleProperty("Turret PID Setpoint", () -> turretController.getSetpoint(), null);
+    builder.addDoubleProperty("Turret Assumed Goal", () -> this.goal, null);
     builder.addDoubleProperty("Turret Absolute Position", () -> throughBore.get(), null);
 		builder.addDoubleProperty("Angle To Hub", () -> getAngleToPose(vision.getHubCenterPose2d()), null);
     builder.addBooleanProperty("Throughbore Connected", () -> throughBore.isConnected(), null);
@@ -209,10 +325,12 @@ public class Turret extends SubsystemBase {
     // builder.addDoubleProperty("Turret Y", () -> getTurretY(), null);
 		builder.addBooleanProperty("Manual Turret", () -> isManual(), null);
 		builder.addBooleanProperty("Fast Turret", () -> turretIsFast(), null);
+    builder.addDoubleProperty("Desired Turret Angle", () -> angleToPose(vision.getHubCenterPose2d()), null);
   }
 
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
+    // vision.setTurretPose2d(getTurretX(), getTurretY(), turretEncoder.getPosition());
   }
 }

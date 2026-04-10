@@ -6,6 +6,7 @@ package frc.robot;
 
 import org.opencv.core.Mat;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
@@ -21,7 +22,6 @@ import com.revrobotics.spark.config.ClosedLoopConfig;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkAnalogSensor;
-
 import edu.wpi.first.wpilibj.AnalogEncoder;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.math.controller.PIDController;
@@ -63,6 +63,7 @@ public class SwerveModule {
     
     private double encoderOffset;
     private double driveVelConversion;
+    private double diameter;
 
     private String label;
 
@@ -77,7 +78,7 @@ public class SwerveModule {
 
         driveConfig
             .smartCurrentLimit(60)
-            .idleMode(IdleMode.kCoast)
+            .idleMode(IdleMode.kBrake)
             .inverted(invertDrive);
 
         rotateConfig
@@ -128,19 +129,34 @@ public class SwerveModule {
         rotateMotor.configure(rotateConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         this.label = label;
+        this.diameter = diameter;
 
         /* Initializes the Analog Input and Analog Encoder. Analog Encoder acts as the absoulete encoder  */
         rotateAbsoluteEncoder = new CANcoder(CANCoderPort);
 
         // rotateAbsoluteEncoderConfig = new CANcoderConfiguration();
 
-        // rotateAbsoluteEncoderConfig.MagnetSensor.MagnetOffset = 0;
-        // rotateAbsoluteEncoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
+        // switch(CANCoderPort) {
+        //  case DriveConstants.FRONT_LEFT_CANCODER_ID -> rotateAbsoluteEncoderConfig.MagnetSensor.MagnetOffset = DriveConstants.FL_OFFSET;
+				// 	case DriveConstants.FRONT_RIGHT_CANCODER_ID -> rotateAbsoluteEncoderConfig.MagnetSensor.MagnetOffset = DriveConstants.FR_OFFSET;
+				// 	case DriveConstants.BACK_LEFT_CANCODER_ID -> rotateAbsoluteEncoderConfig.MagnetSensor.MagnetOffset = DriveConstants.BL_OFFSET;
+				// 	case DriveConstants.BACK_RIGHT_CANCODER_ID -> rotateAbsoluteEncoderConfig.MagnetSensor.MagnetOffset = DriveConstants.BR_OFFSET;
+        // }
+
+        // rotateAbsoluteEncoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
+				// rotateAbsoluteEncoderConfig.MagnetSensor.withAbsoluteSensorDiscontinuityPoint(0.5);
+
+				// rotateAbsoluteEncoder.getConfigurator().apply(rotateAbsoluteEncoderConfig);
 
         swerveModuleState = new SwerveModuleState();
 
         syncEncoders();
-        // resetWheel();
+        // initSwerveState();
+    }
+
+    public void runCharacterization(double output) {
+        driveMotor.setVoltage(output);
+        rotateController.setSetpoint(0, ControlType.kPosition);
     }
 
     /* Returns the distance robot has travlled in meters */
@@ -151,6 +167,14 @@ public class SwerveModule {
     /* Returns the Drive Encoder velocity meters/second */
     public double getDriveVelocity() {
         return driveEncoder.getVelocity();
+    }
+
+    /**Returns the drive encoder velocity in rad/sec.
+     * 
+     * @return Velocity in rad/sec.
+     */
+    public double getDriveVelocityRad() {
+        return getDriveVelocity() / (diameter / 2);
     }
 
     /* Returns the cancoder reading as a rotation2d */
@@ -174,7 +198,7 @@ public class SwerveModule {
      angle %= 2 * Math.PI;
 
         if (angle > Math.PI) {
-            angle = angle - 2.0 * Math.PI;
+            angle = angle - (2.0 * Math.PI);
         }
 
     return angle;
@@ -191,14 +215,18 @@ public class SwerveModule {
 
         double angle = rotateAbsoluteEncoder.getPosition().getValueAsDouble();
         if (angle > Math.PI) {
-            angle = angle - 2 * Math.PI;
+            angle = angle - (2 * Math.PI);
         }
          return angle;
+
+				// return (rotateAbsoluteEncoder.getAbsolutePosition().getValueAsDouble()) * (2 * Math.PI);
     }
 
-    public void resetWheel() {
+    public void initSwerveState() {
         // rotateController.setSetpoint(0, ControlType.kPosition, ClosedLoopSlot.kSlot1);
         rotateController.setSetpoint(0, ControlType.kPosition);
+
+				// setState(new SwerveModuleState(0.0, new Rotation2d(absoluteRotatePosition())));
     }
 
     /* Sets both motors too 0 */

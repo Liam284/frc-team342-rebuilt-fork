@@ -27,6 +27,7 @@ public class Camera {
     private Pose3d pose;
     private PhotonTrackedTarget trackedHubTag;
     private boolean currentlyTrackingHub;
+    private double timestamp;
 
     /**
      * Creates a new Camera.
@@ -42,6 +43,8 @@ public class Camera {
 
         trackedHubTag = new PhotonTrackedTarget();
         currentlyTrackingHub = false;
+
+        timestamp = 0.0;
     }
 
     /**Updates the pose3d of the robot.
@@ -62,6 +65,7 @@ public class Camera {
                 }
             }
 
+            timestamp = estimatedPose.get().timestampSeconds;
             pose = estimatedPose.get().estimatedPose;
         }
     }
@@ -80,6 +84,10 @@ public class Camera {
      */
     public Optional<Pose2d> getRobotPose2d(){
         return Optional.of(pose.toPose2d());
+    }
+
+    public double getTimestamp() {
+        return timestamp;
     }
 
     /**Gets the X (north/south) of the robot.
