@@ -35,7 +35,7 @@ public final class Constants {
 
   public static class VisionConstants {
     //Add pipeline names later when all cameras are set up; grab from 10.3.42.11:5800
-    public static final String TURRET_CAMERA = "Turret";
+    // public static final String ROBOT_BL_CAMERA = "Robot_BL";
     public static final String ROBOT_RIGHT_CAMERA = "Robot_Right";
     public static final String ROBOT_LEFT_CAMERA = "Robot_Left";
     public static final String ROBOT_BACK_CAMERA = "Robot_Back";
@@ -47,17 +47,17 @@ public final class Constants {
     public static final double TAG_CUTOFF_DISTANCE = 5.0;
 
     //Get all these values after cameras are put on robot
-    public static final Translation3d TURRET_CAMERA_TRANSLATION_3D = new Translation3d(0, 0, 0); //zero, because it's not used for pose estimation (and it's changing constantly if turret is moving)
-    public static final Translation3d ROBOT_RIGHT_CAMERA_TRANSLATION_3D = new Translation3d(0.314, -0.314, 0.629);
-    public static final Translation3d ROBOT_LEFT_CAMERA_TRANSLATION_3D = new Translation3d(0.314, 0.314, 0.629);
-    public static final Translation3d ROBOT_BACK_CAMERA_TRANSLATION_3D = new Translation3d(-0.278544, 0.033655, 0.492); //-0.296, -0.046
+    // public static final Translation3d ROBOT_BL_CAMERA_TRANSLATION_3D = new Translation3d(-0.78761, 0.324973, 0.403574);
+    public static final Translation3d ROBOT_RIGHT_CAMERA_TRANSLATION_3D = new Translation3d(0.320152, -0.320152, 0.53697);
+    public static final Translation3d ROBOT_LEFT_CAMERA_TRANSLATION_3D = new Translation3d(0.319615, 0.3195, 0.538693);
+    public static final Translation3d ROBOT_BACK_CAMERA_TRANSLATION_3D = new Translation3d(-0.283451, 0.033655, 0.415173);
 
-    public static final Rotation3d TURRET_CAMERA_ROTATION_3D = new Rotation3d(0, 0, 0); //zero, because it's not used for pose estimation (and it's changing constantly if turret is moving)
-    public static final Rotation3d ROBOT_RIGHT_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, -1.023, -0.785);
-    public static final Rotation3d ROBOT_LEFT_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, -1.023, -0.785);
-    public static final Rotation3d ROBOT_BACK_CAMERA_ROTATION_3D = new Rotation3d(0, -0.261799, Math.PI);
+    // public static final Rotation3d ROBOT_BL_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, Units.degreesToRadians(15), Units.degreesToRadians(120));
+    public static final Rotation3d ROBOT_RIGHT_CAMERA_ROTATION_3D = new Rotation3d(Math.PI/2, Units.degreesToRadians(25.996633), Units.degreesToRadians(-50.538352));
+    public static final Rotation3d ROBOT_LEFT_CAMERA_ROTATION_3D = new Rotation3d(-Math.PI/2, Units.degreesToRadians(25.996633), Units.degreesToRadians(50.538352));
+    public static final Rotation3d ROBOT_BACK_CAMERA_ROTATION_3D = new Rotation3d(0, Units.degreesToRadians(15), Math.PI); //-0.261799
 
-    public static final Transform3d TURRET_CAMERA_TRANSFORM_3D = new Transform3d(TURRET_CAMERA_TRANSLATION_3D, TURRET_CAMERA_ROTATION_3D);
+    // public static final Transform3d ROBOT_BL_CAMERA_TRANSFORM_3D = new Transform3d(ROBOT_BL_CAMERA_TRANSLATION_3D, ROBOT_BL_CAMERA_ROTATION_3D);
     public static final Transform3d ROBOT_RIGHT_CAMERA_TRANSFORM_3D = new Transform3d(ROBOT_RIGHT_CAMERA_TRANSLATION_3D, ROBOT_RIGHT_CAMERA_ROTATION_3D);
     public static final Transform3d ROBOT_LEFT_CAMERA_TRANSFORM_3D = new Transform3d(ROBOT_LEFT_CAMERA_TRANSLATION_3D, ROBOT_LEFT_CAMERA_ROTATION_3D);
     public static final Transform3d RIGHT_BACK_CAMERA_TRANSFORM_3D = new Transform3d(ROBOT_BACK_CAMERA_TRANSLATION_3D, ROBOT_BACK_CAMERA_ROTATION_3D);
@@ -100,7 +100,7 @@ public final class Constants {
 
     //PIDF values
     public static final double[] DRIVE_PIDF_VALUES = {0.23, 0, 0.7, 0};
-    public static final double[] DRIVE_SVA_VALUES = {0.0952, 0.044888, 0.00558155};
+    public static final double[] DRIVE_SVA_VALUES = {0.0952, 0.044888, 0.00558155}; //0.0952, 0.044888, 0.00558155
     public static final double[] ROTATE_PID_VALUES = {0.4, 0.0, 0.4};
 
     //Max drive and rotate speeds
@@ -128,17 +128,20 @@ public final class Constants {
   public static class TurretConstants{
     public static final int TURRET_ID = 17;
     public static final double[] TURRET_PID_VALUES_SLOT0 = {0.005, 0, 0};
-    public static final double[] TURRET_PID_VALUES_SLOT1 = {0.04, 0, 0.015};
+    public static final double[] TURRET_PID_VALUES_SLOT1 = {0.04, 0, 0.01};
 
     public static final double TURRET_MIN_ANGLE = -90;
     public static final double TURRET_MAX_ANGLE = 160.0;
-    public static final double TURRET_ALLOWED_ERROR = 0.5;
+    public static final double TURRET_ALLOWED_ERROR = 1;
 
     public static final double TURRET_GEAR_RATIO = 12.5;
     public static final double TURRET_POSITION_CONVERSION = (2*Math.PI/TURRET_GEAR_RATIO) * 180/Math.PI;
 
     public static final double TURRET_OFFSET_X = -0.131;
     public static final double TURRET_OFFSET_Y = 0.151;
+
+    public static final Transform2d TURRET_OFFSET = new Transform2d(
+      TURRET_OFFSET_X, TURRET_OFFSET_Y, new Rotation2d(180));
 
     public static final double THROUGHBORE_ZERO = 0.2887135572178389;
   }
@@ -151,11 +154,11 @@ public final class Constants {
     public static final double WRIST_POSITION_CONVERSION_FACTOR = (2*Math.PI) / WRIST_GEAR_RATIO;
 
     public static final double WRIST_ALLOWED_ERROR = 0.025;
-    public static final double WRIST_DOWN_POSITION = 5.861;
+    public static final double WRIST_DOWN_POSITION = 5.7065;
     public static final double WRIST_UP_POSITION = 0.01;
     public static final double WRIST_MIDDLE_POSITION = 2.182;
     
-    public static final double[] WRIST_PID_VALUES_SLOT0 = {0.15, 0.0, 0.03};
+    public static final double[] WRIST_PID_VALUES_SLOT0 = {0.165, 0.0, 0.0295};
     public static final double[] WRIST_PID_VALUES_SLOT1 = {0.2, 0.0, 0.25};
   }
 
@@ -168,11 +171,11 @@ public final class Constants {
 
     public static final double SHOOTER_VELOCITY_ERROR = 0.1;
 
-    public static final double[] TOP_SHOOTER_PID_VALUES = {0, 0, 0};
-    public static final double[] TOP_SHOOTER_SVA_VALUES = {0, 0.476584, 0};
+    public static final double[] TOP_SHOOTER_PID_VALUES = {0.005, 0, 0};
+    public static final double[] TOP_SHOOTER_SVA_VALUES = {0.16444, 0.4433449982132, 0}; //0.476584
 
-    public static final double[] BOTTOM_SHOOTER_PID_VALUES = {0, 0, 0};
-    public static final double[] BOTTOM_SHOOTER_SVA_VALUES = {0, 0.349366, 0};
+    public static final double[] BOTTOM_SHOOTER_PID_VALUES = {0.01, 0, 0};
+    public static final double[] BOTTOM_SHOOTER_SVA_VALUES = {0.14449, 0.3225087486599, 0}; //0.349366
 
     public static final double BOTTOM_SHOOTER_WHEEL_DIAMETERS = 4.0;
     public static final double TOP_SHOOTER_WHEEL_DIAMETERS = 3.0;

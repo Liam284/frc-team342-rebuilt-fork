@@ -72,7 +72,7 @@ public class Spindexer extends SubsystemBase {
    */
   public void spinSpindexer(){
     if(isShooting) {
-      spindexer.set(0.7);
+      spindexer.set(0.6);
     }
     else{
       spindexer.set(0);
@@ -91,7 +91,7 @@ public class Spindexer extends SubsystemBase {
    * @return Returns a command for running the spindexer
    */
   public Command runSpindexer(){
-    return new WaitCommand(0.85).andThen(() -> spinSpindexer(), this);
+    return new WaitCommand(1).andThen(() -> spinSpindexer(), this);
   }
 
   public double getSpindexerVelocity() {

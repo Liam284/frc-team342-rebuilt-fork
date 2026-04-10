@@ -22,7 +22,7 @@ import frc.robot.Constants.IntakeConstants.*;
 
 import com.fasterxml.jackson.databind.util.Named;
 import com.pathplanner.lib.auto.NamedCommands;
-
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.CustomXboxController;
@@ -99,10 +99,10 @@ public class RobotContainer {
   public RobotContainer() {
     photonVision = new PhotonVision();
     swere = new SwerveDrive(photonVision);
-    turret = new Turret(swere, photonVision);
     intake = new Intake();
     spindexer = new Spindexer();
     shooter = new Shooter(spindexer, photonVision);
+    turret = new Turret(swere, photonVision, shooter);
 
     driver = new CustomXboxController(0);
     operator = new CustomXboxController(1);
@@ -112,14 +112,14 @@ public class RobotContainer {
     toggleDriveAssist = Commands.runOnce(() -> {swere.toggleDriveAssist();}, swere);
     toggleWristManual = Commands.runOnce(() -> intake.toggleManual());
     toggleFastTurret = Commands.runOnce(() -> turret.toggleFastTurret());
-    // turretToAngle = new AimAhead(swere, shooter, null, photonVision, driver);
+    // turretToAngle = new AimAhead(swere, shooter, turret, photonVision, driver);
     // turretToAngle = Commands.run(() -> {turret.turretToAngle(turret.getAngleToPose(photonVision.getHubCenterPose2d()), operator);}, turret);
     wristDown = Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_DOWN_POSITION, operator), intake);
     wristUp = Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_UP_POSITION, operator), intake);
     wristMiddle = Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_MIDDLE_POSITION, operator), intake);
     getFuelUnstuck = Commands.runEnd(() -> {intake.spinIntake(0.6);}, () -> intake.stopIntake(), intake);
     intakeFuel = Commands.runEnd(() -> {intake.spinIntake(-1);}, () -> intake.stopIntake());
-    shoot = Commands.runEnd(() -> shooter.shootWithDistance(1, photonVision.getRobotPose2d().get()), () -> shooter.stopShooterAndFeeder(), shooter);
+    shoot = Commands.runEnd(() -> shooter.shootWithDistance(1, photonVision.getTurretPose2d().get()), () -> shooter.stopShooterAndFeeder(), shooter);
     
     // turretShoot = Commands.runEnd(() -> shooter.shootWithoutPID(-0.17, -0.52, 1), () -> shooter.stopShooterAndFeeder(), shooter);
     turretShoot = Commands.runEnd(() -> shooter.shootWithSpeed(9.2, 9.4, 1), () -> shooter.stopShooterAndFeeder(), shooter);
@@ -127,7 +127,7 @@ public class RobotContainer {
       Commands.runEnd(() -> shooter.feed(-0.9), () -> shooter.feed(0), shooter),
       Commands.runEnd(() -> spindexer.SpindexerWithSpeed(-0.5), () -> spindexer.SpindexerWithSpeed(0), spindexer)
     );
-    shootWhileMoving = Commands.runEnd(() -> shooter.shootWithDistance(1, AimAhead.getNextPose()), () -> shooter.stopShooterAndFeeder(), shooter);
+    shootWhileMoving = Commands.runEnd(() -> shooter.shootWithDistance(1, turret.getLookAheadPoses()[1]), () -> shooter.stopShooterAndFeeder(), shooter);
 
     driveWithJoystick = new DriveWithJoystick(swere, driver, photonVision);
     moveWristWithJoystick = new MoveWristWithJoystick(intake, operator);
@@ -150,15 +150,19 @@ public class RobotContainer {
     autoChooser = new SendableChooser<>();
 
     // NamedCommands.registerCommand("Shoot Command", Commands.run(() -> shooter.shootWithSpeed(5.98473400509, 11.7034798322, 1), shooter));
-    NamedCommands.registerCommand("Shoot Command", Commands.runEnd(() -> shooter.shootWithDistance(1, photonVision.getHubCenterPose2d()), () -> shooter.stopShooterAndFeeder(), shooter).withTimeout(5));
-    NamedCommands.registerCommand("Wrist Down", wristDown);
-    NamedCommands.registerCommand("Wrist Up", wristUp);
+    NamedCommands.registerCommand("Shoot Command", Commands.runEnd(() -> shooter.shootWithDistance(1, turret.getLookAheadPoses()[1]), () -> shooter.stopShooterAndFeeder(), shooter).withTimeout(5));
+    NamedCommands.registerCommand("Wrist Down", Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_DOWN_POSITION, operator), intake).withTimeout(0.5));
+    NamedCommands.registerCommand("Wrist Up", Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_UP_POSITION, operator), intake).withTimeout(0.5));
     NamedCommands.registerCommand("Wrist Middle", Commands.run(() -> intake.wristToPosition(IntakeConstants.WRIST_MIDDLE_POSITION, operator), intake).withTimeout(0.5));
-    NamedCommands.registerCommand("Intake", intakeFuel);
+    NamedCommands.registerCommand("Intake", Commands.runEnd(() -> {intake.spinIntake(-1);}, () -> intake.stopIntake()));
     NamedCommands.registerCommand("Right Auto Turret Turn", Commands.run(() -> turret.turnTurret(120.11383056640625, operator), turret).withTimeout(0.75));
     NamedCommands.registerCommand("Outpost Turret Turn", Commands.run(() -> turret.turnTurret(63, operator), turret).withTimeout(0.75));
     NamedCommands.registerCommand("Right Outpost Start Turret Turn", Commands.run(() -> turret.turnTurret(109.23597635949386, operator), turret).withTimeout(0.75));
 
+    autoChooser.addOption("Drive SysId Quasistatic Forward", Commands.run(() -> swere.sysIdQuasistatic(SysIdRoutine.Direction.kForward), swere));
+    autoChooser.addOption("Drive SysId Quasistatic Reverse", Commands.run(() -> swere.sysIdQuasistatic(SysIdRoutine.Direction.kReverse), swere));
+    autoChooser.addOption("Drive SysId Dynamic Forward", Commands.run(() -> swere.sysIdDynamic(SysIdRoutine.Direction.kForward), swere));
+    autoChooser.addOption("Drive SysId Dynamic Reverse", Commands.run(() -> swere.sysIdDynamic(SysIdRoutine.Direction.kReverse), swere));
     autoChooser.addOption("Top Shooter Sys ID", Autos.topShooterSysID(shooter));
     autoChooser.addOption("Bottom Shooter Sys ID", Autos.bottomShooterSysID(shooter));
     autoChooser.addOption("Swerve Sys ID", Autos.swerveSysID(swere));
@@ -167,9 +171,13 @@ public class RobotContainer {
     autoChooser.addOption("Basic Right Auto", Autos.basicRightAuto(swere, shooter));
     autoChooser.addOption("Right Outpost Shoot", Autos.rightOutpostShoot(swere, shooter));
     autoChooser.addOption("Basic Right Turret Auto", Autos.basicRightTurretAuto(swere, shooter, turret, photonVision, operator));
+    autoChooser.addOption("Right Neutral Zone Auto", Autos.rightNeutralZoneAuto(swere, shooter, turret, photonVision, intake, operator));
+    autoChooser.addOption("Straight Line Auto", Autos.straightLineAuto(swere));
+    autoChooser.addOption("Basic Left Turret Auto", Autos.basicLeftTurretAuto(swere, shooter, turret, photonVision, driver));
+    
     swere.setDefaultCommand(driveWithJoystick);
-    turret.setDefaultCommand(Commands.run(() -> turret.manualTurret(operator), turret));
-    // turret.setDefaultCommand(turretToAngle);
+    // turret.setDefaultCommand(Commands.run(() -> turret.manualTurret(operator), turret));
+    turret.setDefaultCommand(Commands.run(() -> turret.trackLookAheadPose(photonVision.getHubCenterPose2d(), operator), turret));
     // turret.setDefaultCommand(Commands.run(() -> turret.trackPose(photonVision.getHubCenterPose2d(), operator), turret));
     // intake.setDefaultCommand(moveWristWithJoystick);
     spindexer.setDefaultCommand(spindexer.runSpindexer());
@@ -204,13 +212,14 @@ public class RobotContainer {
     // cancelling on release.
     m_driverController.b().whileTrue(m_exampleSubsystem.exampleMethodCommand());
     fieldOrientedButton.onTrue(toggleFieldOriented); // 'A' button
-    turretToggleButton.onTrue(toggleManualTurret); // 'Start' button
+    turretToggleButton.onTrue(Commands.run(() -> turret.trackLookAheadPose(photonVision.getHubCenterPose2d(), operator), turret)); // 'Start' button
     toggleDriveAssistButton.onTrue(toggleDriveAssist); // 'B' button
     toggleWristButton.onTrue(toggleWristManual); // 'Left Joystick' button
     turretFastModeToggleButton.onTrue(toggleFastTurret);
     // shootButton.whileTrue(turretShoot);
-    shootButton.whileTrue(shoot);
-    // shootButton.whileTrue(shootWhileMoving);
+
+    // shootButton.whileTrue(shoot);
+    shootButton.whileTrue(shootWhileMoving);
     leftSideTurretTurnButton.onTrue(Commands.run(() -> turret.turnTurret(-90, operator), turret));
     rightSideTurretTurnButton.onTrue(Commands.run(() -> turret.turnTurret(90, operator), turret));
     straightAheadTurretButton.onTrue(Commands.run(() -> turret.turnTurret(0, operator), turret));

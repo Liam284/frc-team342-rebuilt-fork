@@ -4,6 +4,8 @@
 
 package frc.robot.commands;
 
+import static frc.robot.Constants.TurretConstants.TURRET_OFFSET;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -22,7 +24,8 @@ public class AimAhead extends Command {
   private CustomXboxController controller;
 
   private Pose2d currentPose;
-  private static Pose2d nextPose;
+  private Pose2d nextRobotPose;
+  private static Pose2d nextTurretPose;
 
   // private double averageShooterSpeed;
   // private double exitVelocity;
@@ -32,8 +35,10 @@ public class AimAhead extends Command {
 
   private double xDisplacement;
   private double yDisplacement;
+  private double rotationDisplacement;
   private double displacedX;
   private double displacedY;
+  private double displacedRotation;
 
   /** Creates a new ShootWhileMoving. */
   public AimAhead(SwerveDrive swerve, Shooter shooter, Turret turret, PhotonVision photonVision, CustomXboxController controller) {
@@ -43,7 +48,7 @@ public class AimAhead extends Command {
     this.photonVision = photonVision;
     this.controller = controller;
 
-    currentPose = photonVision.getRobotPose2d().get();
+    currentPose = swerve.getPose2d();
 
     // averageShooterSpeed = (shooter.getBottomTargetRPM(photonVision.getDistanceToHub(currentPose)) + shooter.getTopTargetRPM(photonVision.getDistanceToHub(currentPose))) / 2;
     // exitVelocity = ((SHOOTER_WHEEL_DIAMETERS * Math.PI * (averageShooterSpeed / 60)) * 0.0254) * 0.9;
@@ -54,17 +59,15 @@ public class AimAhead extends Command {
 
     xDisplacement = swerve.getChassisSpeeds().vxMetersPerSecond * shooter.getFlightTime(photonVision.getDistanceToHub(currentPose));
     yDisplacement = swerve.getChassisSpeeds().vyMetersPerSecond * shooter.getFlightTime(photonVision.getDistanceToHub(currentPose));
+    rotationDisplacement = swerve.getChassisSpeeds().omegaRadiansPerSecond * shooter.getFlightTime(photonVision.getDistanceToHub(currentPose));
 
     displacedX = currentPose.getX() + xDisplacement;
     displacedY = currentPose.getY() + yDisplacement;
+    displacedRotation = currentPose.getRotation().getRadians() + rotationDisplacement;
 
-    nextPose = new Pose2d(
-      displacedX,
-      displacedY,
-      new Rotation2d(photonVision.getRobotPose2d().get().getRotation().getRadians())
-    );
+    nextRobotPose = new Pose2d(displacedX, displacedY, new Rotation2d(displacedRotation));
 
-
+    nextTurretPose = nextRobotPose.plus(TURRET_OFFSET);
 
     // Use addRequirements() here to declare subsystem dependencies.
     addRequirements(turret);
@@ -77,7 +80,7 @@ public class AimAhead extends Command {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    turret.turretToAngle(photonVision.getYawToHub(nextPose), controller);
+    turret.trackLookAheadPose(photonVision.getHubCenterPose2d(), controller);
   }
 
   // Called once the command ends or is interrupted.
@@ -90,7 +93,7 @@ public class AimAhead extends Command {
     return false;
   }
 
-  public static Pose2d getNextPose() {
-    return nextPose;
+  public static Pose2d getNextTurretPose() {
+    return nextTurretPose;
   }
 }

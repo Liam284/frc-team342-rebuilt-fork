@@ -32,27 +32,35 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkClosedLoopController;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
 public class Intake extends SubsystemBase {
-  private SparkFlex intakeMotor;
+  // private SparkFlex intakeMotor;
   private SparkFlex wristMotor;
-
+  private TalonFX intakeMotor;
+  
   private RelativeEncoder intakeEncoder;
   private RelativeEncoder wristEncoder;
   // private DutyCycleEncoder throughBore;
 
   private SparkClosedLoopController wristPID;
 
-  private SparkFlexConfig intakeConfig;
+  // private SparkFlexConfig intakeConfig;
+  private TalonFXConfiguration intakeConfig;
   private SparkFlexConfig wristConfig;
 
   private boolean isManual;
   /** Creates a new Intake. */
   public Intake() {
-    intakeMotor = new SparkFlex(INTAKE_ID, MotorType.kBrushless);
+    // intakeMotor = new SparkFlex(INTAKE_ID, MotorType.kBrushless);
+    intakeMotor = new TalonFX(INTAKE_ID);
     wristMotor = new SparkFlex(WRIST_ID, MotorType.kBrushless);
 
-    intakeEncoder = intakeMotor.getEncoder();
+    // intakeEncoder = intakeMotor.getEncoder();
     wristEncoder = wristMotor.getEncoder();
 
     isManual = false;
@@ -60,12 +68,20 @@ public class Intake extends SubsystemBase {
 
     wristPID = wristMotor.getClosedLoopController();
 
-    intakeConfig = new SparkFlexConfig();
+    // intakeConfig = new SparkFlexConfig();
+    intakeConfig = new TalonFXConfiguration();
     wristConfig = new SparkFlexConfig();
 
-    intakeConfig
-      .idleMode(IdleMode.kBrake)
-      .smartCurrentLimit(30);
+    // intakeConfig
+    //   .idleMode(IdleMode.kBrake)
+    //   .smartCurrentLimit(30);
+
+    intakeConfig.CurrentLimits
+      .withSupplyCurrentLimitEnable(true)
+      .withSupplyCurrentLimit(80);
+
+    intakeConfig.MotorOutput
+      .withNeutralMode(NeutralModeValue.Brake);
 
     wristConfig
       .idleMode(IdleMode.kBrake)
@@ -82,7 +98,8 @@ public class Intake extends SubsystemBase {
       .pid(WRIST_PID_VALUES_SLOT0[0], WRIST_PID_VALUES_SLOT0[1], WRIST_PID_VALUES_SLOT0[2], ClosedLoopSlot.kSlot0)
       .pid(WRIST_PID_VALUES_SLOT1[0], WRIST_PID_VALUES_SLOT1[1], WRIST_PID_VALUES_SLOT1[2], ClosedLoopSlot.kSlot1);
 
-    intakeMotor.configure(intakeConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    // intakeMotor.configure(intakeConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    intakeMotor.getConfigurator().apply(intakeConfig);
     wristMotor.configure(wristConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
   }
 
@@ -161,13 +178,13 @@ public class Intake extends SubsystemBase {
     wristEncoder.setPosition(0.0);
   }
 
-  /**Gets the velocity of the intake in RPM.
-   * 
-   * @return The velocity of the intake in RPM.
-   */
-  public double getIntakeVelocity() {
-    return intakeEncoder.getVelocity();
-  }
+  // /**Gets the velocity of the intake in RPM.
+  //  * 
+  //  * @return The velocity of the intake in RPM.
+  //  */
+  // public double getIntakeVelocity() {
+  //   return intakeEncoder.getVelocity();
+  // }
 
   /**Gets the position of the wrist.
    * 
@@ -214,13 +231,13 @@ public class Intake extends SubsystemBase {
     return Math.abs(wristEncoder.getPosition() - position) < 0.2;
   }
 
-  /**Gets the voltage of the intake.
-   * 
-   * @return The voltage of the intake.
-   */
-  public double getIntakeVoltage() {
-    return intakeMotor.getAppliedOutput() * intakeMotor.getBusVoltage();
-  }
+  // /**Gets the voltage of the intake.
+  //  * 
+  //  * @return The voltage of the intake.
+  //  */
+  // public double getIntakeVoltage() {
+  //   return intakeMotor.getAppliedOutput() * intakeMotor.getBusVoltage();
+  // }
 
   //Putting intake and wrist data onto Elastic
   public void initSendable(SendableBuilder builder) {
@@ -228,9 +245,9 @@ public class Intake extends SubsystemBase {
 
     builder.setSmartDashboardType("Intake");
 
-    builder.addDoubleProperty("Intake Velocity", () -> getIntakeVelocity(), null);
-    builder.addDoubleProperty("Intake Voltage", () -> getIntakeVoltage(), null);
-    builder.addDoubleProperty("Intake Position", () -> intakeEncoder.getPosition(), null);
+    // builder.addDoubleProperty("Intake Velocity", () -> getIntakeVelocity(), null);
+    // builder.addDoubleProperty("Intake Voltage", () -> getIntakeVoltage(), null);
+    // builder.addDoubleProperty("Intake Position", () -> intakeEncoder.getPosition(), null);
     builder.addDoubleProperty("Wrist Position", () -> getWristPosition(), null);
     builder.addDoubleProperty("Wrist Velocity", () -> getWristVelocity(), null);
     builder.addDoubleProperty("Wrist Voltage", () -> getWristVoltage(), null);
